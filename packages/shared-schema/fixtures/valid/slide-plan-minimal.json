@@ -1,0 +1,14 @@
+{
+  "entity": "SlidePlan",
+  "data": {
+    "slideId": "slide_001",
+    "title": "What changes before a butterfly appears?",
+    "objective": "Introduce the lifecycle question",
+    "keyMessage": "A butterfly changes through clear stages",
+    "contentIntent": "Ask a simple opening question and show one reference image",
+    "visualIntent": "image",
+    "layoutSuggestion": "title plus image",
+    "requiredAssets": ["asset_img_butterfly_001"],
+    "riskNotes": []
+  }
+}

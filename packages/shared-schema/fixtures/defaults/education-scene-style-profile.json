@@ -1,0 +1,21 @@
+{
+  "entity": "PresentationSpec",
+  "expect": {
+    "normalized": {
+      "styleProfileId": "style_education_default"
+    }
+  },
+  "data": {
+    "topic": "Butterfly lifecycle workshop",
+    "audience": "children ages 8-10",
+    "purpose": "Explain butterfly growth in a museum activity",
+    "language": "zh-CN",
+    "scene": "education",
+    "questionPolicy": {
+      "mode": "fast",
+      "sceneThreshold": 0.82,
+      "maxQuestions": 3
+    },
+    "confirmedByUser": false
+  }
+}

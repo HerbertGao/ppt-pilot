@@ -1,0 +1,22 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_spec_confirmed_001",
+    "projectId": "proj_minimal_001",
+    "type": "PRESENTATION_SPEC_CONFIRMED",
+    "actor": "user",
+    "payload": {
+      "presentationSpecId": "spec_minimal_education",
+      "scene": "education",
+      "styleProfileId": "style_education_default",
+      "questionPolicy": {
+        "mode": "fast",
+        "sceneThreshold": 0.82,
+        "maxQuestions": 3
+      },
+      "riskNotes": [],
+      "nextState": "OUTLINE_GENERATION"
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  }
+}

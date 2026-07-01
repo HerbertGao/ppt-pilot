@@ -1,0 +1,72 @@
+schema: spec-driven
+
+context: |
+  PPTPilot 是「Cursor for Presentation（演示文稿提示词）方向」的 AI 结构化演示文稿 IDE。
+  目标不是一次性生成整套 PPT，而是通过结构化流程产出可控演示稿：
+  - 需求澄清（先问再生成，Requirement Discovery）
+  - 生成并确认展示规格（Presentation Spec）
+  - 生成并确认大纲（Outline）
+  - 生成幻灯片计划（Slide Plan）
+  - HTML（HyperText Markup Language）预览
+  - 带锁定约束的编辑与再生成（regenerate）
+  - 最终导出（Export，PPTX 仅为导出产物）
+
+  技术栈与分层（以 README / PRODUCT / ARCHITECTURE / CLAUDE 为准）：
+  - 前端（Frontend）：Next.js + React + TypeScript + Zustand + Tailwind + shadcn/ui
+  - 后端（Backend）：FastAPI + Pydantic + SQLModel（最小可行产品（MVP）可先用内存或 SQLite）
+  - 未来服务：PostgreSQL、Redis、Celery/RQ（任务队列）
+  - 数据模型：packages/shared-schema 的统一模式（Schema）作为真实源
+  - 建议单体仓库（Monorepo）结构：apps/web、apps/api、packages/shared-schema、packages/ai-workflow、packages/ppt-engine、packages/exporter
+
+  核心规则（不可违背）：
+  - 不将 PPTX 当作规范源（canonical source）
+  - 不修改已锁定的幻灯片（slide）或元素（element）
+  - 不把所有代理（agent）逻辑合并为单一提示词（prompt）
+  - AI 输出必须先通过模式校验（schema validation）再入库
+  - 不以移动端（mobile）做完整画布编辑器（canvas editor）
+
+  工作流基线（按 docs/WORKFLOW）：
+  - 立项（NEW_PROJECT） -> 需求发现（REQUIREMENT_DISCOVERY） -> 需求复核（REQUIREMENT_REVIEW）
+    -> 大纲生成（OUTLINE_GENERATION） -> 大纲复核（OUTLINE_REVIEW） -> 幻灯片规划（SLIDE_PLANNING）
+    -> 幻灯片计划复核（SLIDE_PLAN_REVIEW） -> 幻灯片生成（SLIDE_GENERATION） -> 编辑（EDITING）
+    -> 审核（REVIEW） -> 导出就绪（EXPORT_READY） -> 已导出（EXPORTED）
+  - 再生成（regenerate）应显式带作用范围（scope）：text_only（仅文本）、image_only（仅图像）、layout_only（仅布局）、full_slide（整张幻灯片）、element（元素）、slide（幻灯片）
+  - 所有生成与编辑动作应有事件（event）与版本（version）记录
+
+  项目非目标（Non-Goals）：
+  - 不做一键式“输入一句话直接出成品”模式
+  - 不把 PPTX 作为编辑或协作源
+  - 不在初期做复杂拖拽布局编排（最小可行产品（MVP）阶段优先工作流与结构化）
+  - 不做超出当前任务范围的企业权限体系与完整品牌治理
+  - 不默认强制全局课程教学模板，教学行为通过项目级风格模板（Style Profile）下发
+
+  新增偏好约定（当前会话确认）：
+  - 项目可在创建/初始阶段选择场景（scene）与风格模板（styleProfile）
+    - 教学类（education）：科普/兴趣类表达优先
+    - 内部汇报（corporate）：简洁商业表述优先
+  - 需求澄清按场景自适应置信度阈值动态追问（高价值问题优先、最小提问）
+  - 再生时默认支持元素级 scope（text / image），优先支持 image 与 text，后续扩展 chart/icon/table
+  - 图片再生要返回多个候选版本（image variants），由用户选择而非自动回退
+  - 锁定策略：只改可改写元素，保留锁定元素坐标、尺寸和样式不变
+  - 质量提示至少包含文本/元素重复率（duplicate rate）告警
+
+rules:
+  proposal:
+    - 先对齐 PRODUCT / ARCHITECTURE / WORKFLOW / DATA_MODEL / TASKS 的约束再提建议
+    - 说明影响范围：模式（schema）、代理（agent）、后端路由（API）、网页端（web）与导出模块（exporter）中的具体路径或模块
+    - 必须包含本次变更的非目标（至少一条）
+    - 涉及锁定、版本、事件、导出链路时，说明保护边界和失败处理
+    - 新增或变更行为要注明验证方式（模式校验 schema、事件（event）、版本（version））
+  specs:
+    - 所有需求要映射到实体模型（Presentation / Spec / Outline / SlidePlan / Slide / Element / Asset / Event / Version）
+    - 涉及 AI 生成行为必须声明结构化 JSON 输出与模式（schema）校验
+    - 再生成（regenerate）、锁定/解锁（lock/unlock）行为必须给出前置条件、作用范围、幂等语义（idempotency）
+  design:
+    - 仅在跨包边界（schema 与 API/web）、持久化契约或新依赖时新增设计文档（design）
+    - 设计必须包含迁移与回滚策略，且保持最小可逆改动
+    - 说明与 HTML（HyperText Markup Language）预览与 PPTX 导出一致性的验证点
+  tasks:
+    - 将任务拆分为可执行小块，单项尽量 2 小时内可 review
+    - 涉及代码改动要给出预期改动文件（至少到目录层）
+    - 涉及锁定、版本、事件链路必须给出验收检查（包括安全回归）
+    - 不在最小可行产品（MVP）阶段提前增加“移动端完整画布编辑”工作量

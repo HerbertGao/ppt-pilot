@@ -1,0 +1,21 @@
+{
+  "entity": "PresentationSpec",
+  "expect": {
+    "normalized": {
+      "styleProfileId": "style_corporate_default"
+    }
+  },
+  "data": {
+    "topic": "Quarterly roadmap",
+    "audience": "executives",
+    "purpose": "Align on roadmap priorities",
+    "language": "en-US",
+    "scene": "corporate",
+    "questionPolicy": {
+      "mode": "fast",
+      "sceneThreshold": 0.75,
+      "maxQuestions": 3
+    },
+    "confirmedByUser": false
+  }
+}

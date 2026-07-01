@@ -1,0 +1,21 @@
+{
+  "entity": "PresentationSpec",
+  "expect": {
+    "normalized": {
+      "styleProfileId": "style_default"
+    }
+  },
+  "data": {
+    "topic": "General project overview",
+    "audience": "mixed audience",
+    "purpose": "Explain a general topic",
+    "language": "en-US",
+    "scene": "default",
+    "questionPolicy": {
+      "mode": "fast",
+      "sceneThreshold": 0.78,
+      "maxQuestions": 3
+    },
+    "confirmedByUser": false
+  }
+}

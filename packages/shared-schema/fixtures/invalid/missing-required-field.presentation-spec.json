@@ -1,0 +1,16 @@
+{
+  "entity": "PresentationSpec",
+  "data": {
+    "audience": "executives",
+    "purpose": "Align on roadmap priorities",
+    "language": "en-US",
+    "scene": "corporate",
+    "styleProfileId": "style_corporate_default",
+    "questionPolicy": {
+      "mode": "fast",
+      "sceneThreshold": 0.75,
+      "maxQuestions": 3
+    },
+    "confirmedByUser": false
+  }
+}

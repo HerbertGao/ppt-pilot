@@ -1,0 +1,18 @@
+{
+  "name": "ppt-pilot",
+  "version": "0.0.0",
+  "private": true,
+  "description": "PPTPilot monorepo workspace.",
+  "scripts": {
+    "install:deps": "pnpm install --no-frozen-lockfile && python3 -m pip install -e apps/api",
+    "typecheck": "pnpm --filter @ppt-pilot/shared-schema typecheck && pnpm --filter @ppt-pilot/shared-schema build && pnpm --filter @ppt-pilot/web typecheck",
+    "validate": "pnpm --filter @ppt-pilot/shared-schema typecheck && pnpm --filter @ppt-pilot/shared-schema build && pnpm --filter @ppt-pilot/shared-schema validate:fixtures && pnpm --filter @ppt-pilot/web typecheck && pnpm --filter @ppt-pilot/web build && pnpm --filter @ppt-pilot/web smoke-start && python3 -m compileall apps/api/app && PYTHONPATH=apps/api python3 -m app.shared_schema_smoke && PYTHONPATH=apps/api python3 -c \"from app.main import app, health_check; paths = {route.path for route in app.routes}; assert '/health' in paths; result = health_check(); assert result['status'] == 'ok'; assert result['service'] == 'ppt-pilot-api'\""
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  }
+}

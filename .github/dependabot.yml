@@ -1,0 +1,62 @@
+version: 2
+
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      js-workspace-toolchain:
+        patterns:
+          - "typescript"
+          - "pnpm"
+          - "@types/*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+    groups:
+      web-runtime:
+        patterns:
+          - "next"
+          - "react"
+          - "react-dom"
+      web-types-and-tools:
+        patterns:
+          - "@types/*"
+          - "typescript"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "npm"
+    directory: "/packages/shared-schema"
+    schedule:
+      interval: "weekly"
+    groups:
+      shared-schema-toolchain:
+        patterns:
+          - "typescript"
+          - "@types/*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "pip"
+    directory: "/apps/api"
+    schedule:
+      interval: "weekly"
+    groups:
+      api-python-runtime:
+        patterns:
+          - "fastapi"
+          - "uvicorn*"
+    open-pull-requests-limit: 5
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    open-pull-requests-limit: 5

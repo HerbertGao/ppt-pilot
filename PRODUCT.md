@@ -44,6 +44,7 @@ An AI Presentation IDE that asks, plans, generates, edits, locks, regenerates, a
 - Startup founders making pitch decks
 - Consultants making client decks
 - Trainers making course materials
+- Museum educators and interest-education teachers creating child-friendly explanation slides (e.g. exhibit demos for butterflies)
 
 ### Phase 2: Team / enterprise users
 
@@ -95,6 +96,14 @@ As a user, I want to regenerate one page without affecting other pages.
 
 As a user, I want to lock the title or image while asking AI to rewrite only the bullets, or keep the text while changing layout.
 
+### Style profile selection
+
+As a user, I want to choose a project-level style profile at creation time so that output matches use context (teaching, internal reporting, etc.).
+
+### Image variant choice
+
+As a user, I want to generate multiple image candidates and choose the best one, so regeneration is practical and controlled.
+
 ### Export
 
 As a user, I want to export PPTX, PDF, and HTML preview from the same structured deck.
@@ -105,10 +114,12 @@ As a user, I want to export PPTX, PDF, and HTML preview from the same structured
 
 - Requirement discovery chat
 - Presentation Spec JSON
+- Scene-aware, low-friction requirement questioning (adaptive confidence)
 - Outline generation
 - Slide plan generation
 - HTML preview
 - Basic export placeholder
+- Initial style profile selection (`education` / `corporate`)
 
 ### MVP v0.2
 
@@ -116,6 +127,7 @@ As a user, I want to export PPTX, PDF, and HTML preview from the same structured
 - Basic theme system
 - AI image prompt generation
 - PPTX export
+- Duplicate-rate lightweight quality warning
 
 ### MVP v0.3
 
@@ -125,10 +137,12 @@ As a user, I want to export PPTX, PDF, and HTML preview from the same structured
 - Image replacement
 - Page locking
 - Element locking
+- Element lock-aware image/text regeneration groundwork
 
 ### MVP v0.4
 
 - Partial regeneration
+- Image variant choice
 - Version history
 - Diff / accept / reject
 - Review Agent
