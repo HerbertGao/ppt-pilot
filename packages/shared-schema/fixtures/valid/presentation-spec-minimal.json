@@ -1,0 +1,29 @@
+{
+  "entity": "PresentationSpec",
+  "data": {
+    "id": "spec_minimal_education",
+    "topic": "Butterfly lifecycle workshop",
+    "audience": "children ages 8-10",
+    "purpose": "Explain butterfly growth in a museum activity",
+    "durationMinutes": 15,
+    "slideCountTarget": 6,
+    "language": "zh-CN",
+    "tone": "curious",
+    "scene": "education",
+    "styleProfileId": "style_education_default",
+    "questionPolicy": {
+      "mode": "fast",
+      "sceneThreshold": 0.82,
+      "maxQuestions": 3
+    },
+    "riskNotes": [],
+    "style": {
+      "visualStyle": "warm",
+      "density": "medium",
+      "chineseFriendly": true
+    },
+    "constraints": [],
+    "sourceMaterials": [],
+    "confirmedByUser": false
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "entity": "Presentation",
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "$.slides[0].plan.requiredAssets[0]"
+      }
+    ]
+  },
+  "data": {
+    "id": "pres_reference_001",
+    "projectId": "proj_reference_001",
+    "title": "Reference failure sample",
+    "spec": {
+      "topic": "Reference failure sample",
+      "audience": "schema developers",
+      "purpose": "Prove invalid references fail before storage",
+      "language": "en-US",
+      "scene": "default",
+      "styleProfileId": "style_default",
+      "questionPolicy": {
+        "mode": "fast",
+        "sceneThreshold": 0.78,
+        "maxQuestions": 3
+      },
+      "confirmedByUser": false
+    },
+    "theme": {},
+    "scene": "default",
+    "styleProfileId": "style_default",
+    "assets": [],
+    "slides": [
+      {
+        "id": "slide_reference_001",
+        "presentationId": "pres_reference_001",
+        "index": 1,
+        "title": "Broken references",
+        "status": "planned",
+        "locked": false,
+        "plan": {
+          "slideId": "slide_reference_001",
+          "title": "Broken references",
+          "objective": "Show broken references",
+          "keyMessage": "Invalid references must not pass",
+          "contentIntent": "Use missing links",
+          "visualIntent": "image",
+          "layoutSuggestion": "single image",
+          "requiredAssets": ["asset_missing"],
+          "riskNotes": []
+        },
+        "elements": [],
+        "createdAt": "2026-07-01T00:00:00.000Z",
+        "updatedAt": "2026-07-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-07-01T00:00:00.000Z",
+    "updatedAt": "2026-07-01T00:00:00.000Z"
+  }
+}

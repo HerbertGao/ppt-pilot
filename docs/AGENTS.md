@@ -110,9 +110,27 @@ Who is the audience?
 
 Stop asking when:
 
-- Requirement confidence >= 0.85, or
+- Requirement confidence reaches the effective `sceneThreshold`, or
+- effective `maxQuestions` has been reached, or
 - all MUST_ASK fields are answered, or
 - user chooses to skip remaining questions.
+
+Default fast-mode thresholds:
+
+```text
+education: 0.82
+corporate: 0.75
+default: 0.78
+```
+
+Thorough mode should use at least `0.85` unless the scene policy explicitly overrides it.
+
+Default question caps:
+
+```text
+fast: 3
+thorough: 5
+```
 
 ## 6. Spec Builder Agent
 
@@ -124,14 +142,21 @@ Produce the canonical Presentation Spec used by all downstream agents.
 
 ```json
 {
-  "presentationId": "",
-  "title": "",
+  "topic": "",
   "audience": "",
   "purpose": "",
   "durationMinutes": 20,
   "slideCountTarget": 12,
   "language": "zh-CN",
   "tone": "professional",
+  "scene": "education | corporate | default",
+  "styleProfileId": "style_museum_children",
+  "questionPolicy": {
+    "mode": "fast | thorough",
+    "sceneThreshold": 0.82,
+    "maxQuestions": 3
+  },
+  "riskNotes": [],
   "style": {
     "visualStyle": "modern",
     "density": "medium",

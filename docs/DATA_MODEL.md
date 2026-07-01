@@ -29,6 +29,8 @@ ExportArtifact
   "title": "AI Agent Enterprise Applications",
   "spec": {},
   "theme": {},
+  "scene": "education | corporate | default",
+  "styleProfileId": "style_museum_children",
   "slides": [],
   "createdAt": "",
   "updatedAt": ""
@@ -46,17 +48,45 @@ ExportArtifact
   "slideCountTarget": 12,
   "language": "zh-CN",
   "tone": "professional",
+  "scene": "education | corporate | default",
+  "styleProfileId": "style_museum_children",
   "style": {
     "visualStyle": "modern",
     "density": "medium",
     "chineseFriendly": true,
     "chinaStyleFriendly": true
   },
+  "questionPolicy": {
+    "mode": "fast | thorough",
+    "sceneThreshold": 0.82,
+    "maxQuestions": 3
+  },
+  "riskNotes": [],
   "constraints": [],
   "sourceMaterials": [],
   "confirmedByUser": false
 }
 ```
+
+### Presentation Spec 最小约束
+
+```text
+scene: "education" | "corporate" | "default"
+styleProfileId: string | null
+questionPolicy:
+  mode: "fast" | "thorough"
+  sceneThreshold: number (0.0 ~ 1.0)
+  maxQuestions: integer >= 1
+```
+
+`questionPolicy` 应同时满足：
+
+- 未传 `maxQuestions` 时使用模式默认值：`fast=3`, `thorough=5`
+- 未传 `sceneThreshold` 时按 `scene + mode` 映射计算默认值
+  - `education`+`fast` -> `0.82`
+  - `corporate`+`fast` -> `0.75`
+  - `default`+`fast` -> `0.78`
+  - `thorough` -> 不低于 `0.85`（按场景策略可覆盖时再调整）
 
 ## 5. Slide
 
@@ -100,6 +130,49 @@ locked
 }
 ```
 
+## 6.1 Style Profile
+
+```json
+{
+  "id": "style_museum_children",
+  "name": "museum-children",
+  "scene": "education",
+  "vocabulary": "kid-friendly, playful, visual-first",
+  "defaultTone": "curious",
+  "defaultDensity": "medium",
+  "allowedRegenerateScopes": ["text_only", "image_only", "layout_only"],
+  "imageGuidance": {
+    "mood": "friendly",
+    "color": "warm"
+  }
+}
+```
+
+### StyleProfile 最小结构
+
+```text
+id: string
+name: string
+scene: "education" | "corporate" | "default"
+```
+
+关系约束：
+
+- `Presentation.scene` 与 `PresentationSpec.scene` 必须是 `education | corporate | default`。
+- `Presentation.styleProfileId`、`PresentationSpec.styleProfileId` 必须引用到与该 `scene` 相同 `scene` 的 `StyleProfile`。
+- 若 `styleProfileId` 缺省，系统必须按 `scene` 回退到内置默认 id。
+- 无效的 `scene`/`styleProfileId` 归属组合必须拒绝入库（失败返回校验错误）。
+
+Built-in default profile IDs:
+
+```text
+default -> style_default
+education -> style_education_default
+corporate -> style_corporate_default
+```
+
+If a project omits `styleProfileId`, the system applies the built-in default for the effective `scene`.
+
 ## 7. Element
 
 ```json
@@ -108,6 +181,10 @@ locked
   "slideId": "slide_001",
   "type": "text",
   "content": {},
+  "imageVariantsPolicy": {
+    "count": 3,
+    "selectedAssetId": "asset_img_001"
+  },
   "x": 80,
   "y": 60,
   "width": 960,
@@ -119,6 +196,8 @@ locked
   "metadata": {}
 }
 ```
+
+`imageVariantsPolicy` is optional and belongs to Phase 6 image regeneration. Phase 1 does not require this field.
 
 Element types:
 
@@ -198,11 +277,41 @@ group
 {
   "id": "evt_001",
   "projectId": "proj_001",
-  "type": "SLIDE_REGENERATED",
+  "type": "SCENE_STYLE_PROFILE_UPDATED",
   "actor": "user | ai | system",
-  "payload": {},
+  "payload": {
+    "scene": "education",
+    "styleProfileId": "style_museum_children",
+    "questionPolicy": {
+      "mode": "fast",
+      "sceneThreshold": 0.82,
+      "maxQuestions": 3
+    },
+    "confidence": 0.72,
+    "skippedQuestionIds": []
+  },
   "createdAt": ""
 }
+```
+
+Phase 1 event types:
+
+```text
+SCENE_STYLE_PROFILE_UPDATED
+QUESTION_POLICY_APPLIED
+REQUIREMENT_QUESTION_ASKED
+REQUIREMENT_QUESTION_SKIPPED
+PRESENTATION_SPEC_CONFIRMED
+```
+
+Minimum Phase 1 event payloads:
+
+```text
+SCENE_STYLE_PROFILE_UPDATED: { previousScene, previousStyleProfileId, scene, styleProfileId }
+QUESTION_POLICY_APPLIED: { mode, sceneThreshold, maxQuestions, confidence, thresholdReached }
+REQUIREMENT_QUESTION_ASKED: { questionId, prompt, kind, options, confidenceBefore }
+REQUIREMENT_QUESTION_SKIPPED: { questionId, reason, confidenceAfter, riskNote }
+PRESENTATION_SPEC_CONFIRMED: { presentationSpecId, scene, styleProfileId, questionPolicy, riskNotes, nextState }
 ```
 
 ## 13. Lock Model

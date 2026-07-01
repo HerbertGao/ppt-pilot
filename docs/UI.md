@@ -26,6 +26,7 @@ Mobile is for requirement discussion, preview, comments, and approvals.
 Contains:
 
 - Presentation outline
+- Project scene / style profile selector
 - Slide thumbnails
 - Slide status
 - Slide lock indicator
@@ -52,6 +53,7 @@ MVP canvas features:
 - Resize element
 - Edit text
 - Replace image
+- Keep element geometry for locked elements (position/size/style fixed)
 - Show safe margin
 - Show grid later
 - Show alignment guides later
@@ -84,6 +86,7 @@ For current selection:
 - Shorten
 - Expand
 - Regenerate image
+- Generate image alternatives (later phase)
 - Keep content, change layout
 - Keep layout, rewrite content
 - Explain why this slide looks weak
@@ -96,10 +99,18 @@ Contains:
 - Version history
 - Review issues
 - Accept / reject changes later
+- Duplicate-rate warning list (soft warning)
 
 ## 7. Requirement Discovery UX
 
+Project creation should allow selecting scene preset and style profile before discovery (or accept defaults).
+
 The initial interface should not be a blank prompt box only.
+
+Two modes:
+
+- 快速模式（fast，少问快产出）
+- 深入模式（thorough，更高置信度）
 
 Use a chat-like flow with structured cards.
 
@@ -129,6 +140,8 @@ AI: I understand the topic, but I need 3 key details before generating.
 - Sell
 ```
 
+If scene is selected as education, add default context prompts for “curious children / museum-style storytelling”.
+
 ## 8. Spec Review UX
 
 Before outline generation, show a summary card:
@@ -147,6 +160,9 @@ User actions:
 - Confirm
 - Edit
 - Ask AI to challenge this plan
+
+When a slide has locked elements, image regeneration should be offered as a locked-preserve path (replace image only, keep geometry).
+This is a later-phase interaction after slide generation and locking exist.
 
 ## 9. Mobile UX
 
@@ -168,3 +184,13 @@ Do not implement precise drag/resizing on mobile for MVP.
 
 Do not make the user prompt harder.
 Make the product ask better questions.
+
+## 11. Image Variant Picker
+
+When regenerating image-type elements, present 2~5 candidate images for explicit user selection.
+
+This belongs to Phase 6 partial regeneration, not Phase 1 requirement discovery.
+
+- Keep original element geometry when only image is regenerated.
+- User can request more batches if none are suitable.
+- Do not auto-rollback to old image; selection is user-driven.

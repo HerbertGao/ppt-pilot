@@ -1,0 +1,148 @@
+:root {
+  --ink: #16201c;
+  --muted: #5f6f68;
+  --paper: #fff8e8;
+  --lime: #d5f25f;
+  --teal: #0d6d61;
+  --clay: #c96f3d;
+  --line: rgba(22, 32, 28, 0.14);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(213, 242, 95, 0.52), transparent 28rem),
+    radial-gradient(circle at 82% 8%, rgba(201, 111, 61, 0.28), transparent 22rem),
+    linear-gradient(135deg, #fff8e8 0%, #f4ead4 52%, #e7f0dc 100%);
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
+}
+
+.shell {
+  width: min(1080px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 72px 0;
+}
+
+.hero {
+  max-width: 760px;
+  padding: 56px;
+  border: 1px solid var(--line);
+  border-radius: 36px;
+  background: rgba(255, 248, 232, 0.76);
+  box-shadow: 0 28px 80px rgba(22, 32, 28, 0.12);
+  backdrop-filter: blur(18px);
+}
+
+.eyebrow {
+  margin: 0 0 14px;
+  color: var(--teal);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+h1 {
+  margin-bottom: 20px;
+  font-size: clamp(4rem, 12vw, 9rem);
+  line-height: 0.86;
+  letter-spacing: -0.08em;
+}
+
+h2 {
+  margin-bottom: 12px;
+  font-size: clamp(1.6rem, 4vw, 2.6rem);
+  letter-spacing: -0.04em;
+}
+
+.lede {
+  max-width: 600px;
+  margin-bottom: 0;
+  color: var(--muted);
+  font-size: clamp(1.1rem, 2vw, 1.35rem);
+  line-height: 1.6;
+}
+
+.contract-card,
+.boundary-card {
+  margin-top: 24px;
+  padding: 32px;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.contract-card {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.contract-list {
+  display: grid;
+  gap: 14px;
+  margin: 0;
+}
+
+.contract-list div {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255, 248, 232, 0.7);
+}
+
+dt {
+  margin-bottom: 8px;
+  color: var(--clay);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.boundary-card p {
+  max-width: 760px;
+  margin-bottom: 0;
+  color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (max-width: 760px) {
+  .shell {
+    padding: 28px 0;
+  }
+
+  .hero,
+  .contract-card,
+  .boundary-card {
+    padding: 24px;
+    border-radius: 24px;
+  }
+
+  .contract-card {
+    grid-template-columns: 1fr;
+  }
+}

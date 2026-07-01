@@ -1,0 +1,387 @@
+name: Phase 1 CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: phase-1-ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Detect changed areas
+    runs-on: ubuntu-latest
+    outputs:
+      docs_openspec: ${{ steps.filter.outputs.docs_openspec }}
+      shared_schema: ${{ steps.filter.outputs.shared_schema }}
+      web: ${{ steps.filter.outputs.web }}
+      api: ${{ steps.filter.outputs.api }}
+      js_workspace: ${{ steps.filter.outputs.js_workspace }}
+      ci_config: ${{ steps.filter.outputs.ci_config }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Classify changed files
+        id: filter
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docs_openspec=false
+          shared_schema=false
+          web=false
+          api=false
+          js_workspace=false
+          ci_config=false
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            docs_openspec=true
+            shared_schema=true
+            web=true
+            api=true
+            js_workspace=true
+            ci_config=true
+          else
+            if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+              base="${{ github.event.pull_request.base.sha }}"
+            else
+              base="${{ github.event.before }}"
+            fi
+
+            if [[ -z "${base}" || "${base}" =~ ^0+$ ]]; then
+              base="$(git rev-list --max-parents=0 HEAD)"
+            fi
+
+            mapfile -t files < <(git diff --name-only "${base}" HEAD)
+
+            for file in "${files[@]}"; do
+              case "${file}" in
+                README.md|PRODUCT.md|AGENTS.md|docs/*|openspec/*)
+                  docs_openspec=true
+                  ;;
+              esac
+
+              case "${file}" in
+                packages/shared-schema/*)
+                  shared_schema=true
+                  ;;
+              esac
+
+              case "${file}" in
+                apps/web/*)
+                  web=true
+                  ;;
+              esac
+
+              case "${file}" in
+                apps/api/*)
+                  api=true
+                  ;;
+              esac
+
+              case "${file}" in
+                package.json|pnpm-lock.yaml|pnpm-workspace.yaml|tsconfig.json|tsconfig.base.json|.npmrc|.pnpmfile.cjs)
+                  js_workspace=true
+                  ;;
+              esac
+
+              case "${file}" in
+                .github/workflows/*|.github/dependabot.yml)
+                  ci_config=true
+                  ;;
+              esac
+            done
+          fi
+
+          if [[ "${js_workspace}" == "true" ]]; then
+            shared_schema=true
+            web=true
+          fi
+
+          if [[ "${ci_config}" == "true" ]]; then
+            docs_openspec=true
+          fi
+
+          {
+            echo "docs_openspec=${docs_openspec}"
+            echo "shared_schema=${shared_schema}"
+            echo "web=${web}"
+            echo "api=${api}"
+            echo "js_workspace=${js_workspace}"
+            echo "ci_config=${ci_config}"
+          } >> "${GITHUB_OUTPUT}"
+
+  docs_openspec:
+    name: docs/OpenSpec gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.docs_openspec == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate docs and OpenSpec artifacts
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f README.md
+          test -f docs/ROADMAP_PROGRESS.md
+          test -f docs/CI_GATES.md
+          test -f openspec/config.yaml
+          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/proposal.md
+          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/design.md
+          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/tasks.md
+          grep -q "schema: spec-driven" openspec/config.yaml
+          grep -q "phase-1-foundation-monorepo-and-shared-schema" docs/ROADMAP_PROGRESS.md
+
+          if command -v openspec-cn >/dev/null 2>&1; then
+            openspec-cn validate phase-1-foundation-monorepo-and-shared-schema --strict
+          else
+            echo "openspec-cn is not installed on this runner; artifact shape checks completed."
+          fi
+
+  shared_schema:
+    name: shared-schema gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.shared_schema == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install JavaScript workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@9 --activate
+          pnpm install --no-frozen-lockfile
+
+      - name: Typecheck, build, and validate shared-schema fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @ppt-pilot/shared-schema typecheck
+          pnpm --filter @ppt-pilot/shared-schema build
+          pnpm --filter @ppt-pilot/shared-schema validate:fixtures
+
+      - name: Install API dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -e apps/api
+
+      - name: Run API Python shared-schema smoke
+        shell: bash
+        run: PYTHONPATH=apps/api python3 -m app.shared_schema_smoke
+
+  web:
+    name: Web gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install JavaScript workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@9 --activate
+          pnpm install --no-frozen-lockfile
+
+      - name: Typecheck, build, and smoke-start Web shell
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @ppt-pilot/shared-schema build
+          pnpm --filter @ppt-pilot/web typecheck
+          pnpm --filter @ppt-pilot/web build
+          pnpm --filter @ppt-pilot/web smoke-start
+
+  api:
+    name: API gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build shared-schema for Python smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@9 --activate
+          pnpm install --no-frozen-lockfile
+          pnpm --filter @ppt-pilot/shared-schema build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install API dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m pip install --upgrade pip
+          python3 -m pip install -e apps/api
+
+      - name: Compile API package
+        shell: bash
+        run: python3 -m compileall apps/api/app
+
+      - name: Run Python shared-schema smoke
+        shell: bash
+        run: PYTHONPATH=apps/api python3 -m app.shared_schema_smoke
+
+      - name: Verify API health/start path
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=apps/api python3 - <<'PY'
+          from app.main import app, health_check
+
+          paths = {route.path for route in app.routes}
+          assert "/health" in paths, "FastAPI app must expose /health"
+          result = health_check()
+          assert result["status"] == "ok", result
+          assert result["service"] == "ppt-pilot-api", result
+          PY
+
+  ci_config:
+    name: CI config gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.ci_config == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Validate CI and Dependabot configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test -f .github/workflows/ci.yml
+          test -f .github/dependabot.yml
+          grep -q "required_check:" .github/workflows/ci.yml
+          grep -q "package-ecosystem: \"npm\"" .github/dependabot.yml
+          grep -q "package-ecosystem: \"pip\"" .github/dependabot.yml
+          grep -q "package-ecosystem: \"github-actions\"" .github/dependabot.yml
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for path in Path(".github").rglob("*.yml"):
+              text = path.read_text()
+              assert "\t" not in text, f"{path} must not contain tab indentation"
+
+          workflow = Path(".github/workflows/ci.yml").read_text()
+          required_markers = [
+              "docs_openspec:",
+              "shared_schema:",
+              "web:",
+              "api:",
+              "ci_config:",
+              "required_check:",
+          ]
+          missing = [marker for marker in required_markers if marker not in workflow]
+          assert not missing, f"Missing CI markers: {missing}"
+          PY
+
+  required_check:
+    name: required check
+    runs-on: ubuntu-latest
+    needs:
+      - changes
+      - docs_openspec
+      - shared_schema
+      - web
+      - api
+      - ci_config
+    if: always()
+    steps:
+      - name: Summarize Phase 1 gates
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          failed=false
+          for result in \
+            "${{ needs.changes.result }}" \
+            "${{ needs.docs_openspec.result }}" \
+            "${{ needs.shared_schema.result }}" \
+            "${{ needs.web.result }}" \
+            "${{ needs.api.result }}" \
+            "${{ needs.ci_config.result }}"
+          do
+            case "${result}" in
+              success|skipped)
+                ;;
+              *)
+                failed=true
+                ;;
+            esac
+          done
+
+          cat <<SUMMARY
+          Phase 1 gate results:
+          - changes: ${{ needs.changes.result }}
+          - docs/OpenSpec: ${{ needs.docs_openspec.result }}
+          - shared-schema: ${{ needs.shared_schema.result }}
+          - Web: ${{ needs.web.result }}
+          - API: ${{ needs.api.result }}
+          - CI config: ${{ needs.ci_config.result }}
+          SUMMARY
+
+          if [[ "${failed}" == "true" ]]; then
+            exit 1
+          fi

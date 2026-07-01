@@ -22,10 +22,15 @@ NEW_PROJECT
 ### NEW_PROJECT
 
 Project has been created but no requirement has been processed.
+- User can choose a scene preset and style profile (`education` / `corporate` / `default`) at creation time.
+- Style profile can be switched until Presentation Spec confirmation. After confirmation, switching returns the user to requirement review/discovery.
 
 ### REQUIREMENT_DISCOVERY
 
 The system parses the initial user request and asks clarifying questions.
+- Adaptive strategy: ask only minimal high-value questions.
+- Stop at scene-aware confidence threshold or when the user skips.
+- Keep low-friction fast-first interaction by default.
 
 Allowed actions:
 
@@ -80,6 +85,9 @@ Allowed actions:
 ### SLIDE_GENERATION
 
 The system generates slide elements and assets from slide plans.
+- Regenerate only unlocked elements.
+- Preserve locked element position/size/style as hard constraints.
+- This is a later-phase rule, not part of Phase 1 requirement discovery.
 
 ### EDITING
 
@@ -95,6 +103,7 @@ Allowed actions:
 - lock slide
 - regenerate selected element
 - regenerate selected slide
+- choose generated image variant (Phase 6)
 
 ### REVIEW
 
@@ -106,6 +115,8 @@ Allowed actions:
 - reject issue suggestion
 - regenerate affected page
 - return to editing
+- duplicate-rate warning / quality hint (soft warning, not hard block)
+- Review and duplicate-rate checks are later-phase behavior after slide generation exists.
 
 ### EXPORT_READY
 
@@ -146,6 +157,8 @@ IMAGE_ONLY_REGENERATE
 LAYOUT_ONLY_REGENERATE
 ```
 
+For IMAGE_ONLY_REGENERATE and image-target ELEMENT_REGENERATE, return multiple image variants for user selection (default to multiple images when supported). This belongs to Phase 6 partial regeneration.
+
 ## 5. Human Approval Gates
 
 Required approval gates:
@@ -159,6 +172,7 @@ Optional approval gates:
 
 - Per-slide generation approval
 - Per-asset approval
+- Initial style-profile confirmation
 
 ## 6. Event Model
 
@@ -178,6 +192,24 @@ Example events:
     "elementId": "e_001"
   }
 }
+```
+
+Later-phase requirement-discovery events:
+
+```text
+SCENE_STYLE_PROFILE_UPDATED
+QUESTION_POLICY_APPLIED
+REQUIREMENT_QUESTION_ASKED
+REQUIREMENT_QUESTION_SKIPPED
+PRESENTATION_SPEC_CONFIRMED
+```
+
+Suggested later events:
+
+```text
+IMAGE_VARIANTS_GENERATED
+IMAGE_VARIANTS_SELECTED
+DUPLICATE_RATE_WARNING
 ```
 
 ## 7. Why Workflow Matters

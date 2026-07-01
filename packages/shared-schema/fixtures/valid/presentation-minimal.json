@@ -1,0 +1,110 @@
+{
+  "entity": "Presentation",
+  "data": {
+    "id": "pres_minimal_001",
+    "projectId": "proj_minimal_001",
+    "title": "Butterfly lifecycle workshop",
+    "spec": {
+      "id": "spec_minimal_education",
+      "topic": "Butterfly lifecycle workshop",
+      "audience": "children ages 8-10",
+      "purpose": "Explain butterfly growth in a museum activity",
+      "durationMinutes": 15,
+      "slideCountTarget": 6,
+      "language": "zh-CN",
+      "tone": "curious",
+      "scene": "education",
+      "styleProfileId": "style_education_default",
+      "questionPolicy": {
+        "mode": "fast",
+        "sceneThreshold": 0.82,
+        "maxQuestions": 3
+      },
+      "riskNotes": [],
+      "constraints": [],
+      "sourceMaterials": [],
+      "confirmedByUser": false
+    },
+    "theme": {},
+    "scene": "education",
+    "styleProfileId": "style_education_default",
+    "assets": [
+      {
+        "id": "asset_img_butterfly_001",
+        "type": "image",
+        "source": "upload",
+        "url": "https://example.invalid/butterfly.png",
+        "metadata": {}
+      }
+    ],
+    "slides": [
+      {
+        "id": "slide_001",
+        "presentationId": "pres_minimal_001",
+        "index": 1,
+        "title": "What changes before a butterfly appears?",
+        "status": "planned",
+        "locked": false,
+        "plan": {
+          "slideId": "slide_001",
+          "title": "What changes before a butterfly appears?",
+          "objective": "Introduce the lifecycle question",
+          "keyMessage": "A butterfly changes through clear stages",
+          "contentIntent": "Ask a simple opening question and show one reference image",
+          "visualIntent": "image",
+          "layoutSuggestion": "title plus image",
+          "requiredAssets": ["asset_img_butterfly_001"],
+          "riskNotes": []
+        },
+        "elements": [
+          {
+            "id": "el_title_001",
+            "slideId": "slide_001",
+            "type": "text",
+            "content": {
+              "kind": "title",
+              "text": "蝴蝶出现前发生了什么？"
+            },
+            "x": 80,
+            "y": 60,
+            "width": 960,
+            "height": 120,
+            "rotation": 0,
+            "zIndex": 1,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          },
+          {
+            "id": "el_image_001",
+            "slideId": "slide_001",
+            "type": "image",
+            "content": {
+              "assetId": "asset_img_butterfly_001",
+              "alt": "A butterfly resting on a leaf",
+              "crop": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              }
+            },
+            "x": 120,
+            "y": 220,
+            "width": 800,
+            "height": 420,
+            "rotation": 0,
+            "zIndex": 2,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          }
+        ],
+        "createdAt": "2026-07-01T00:00:00.000Z",
+        "updatedAt": "2026-07-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-07-01T00:00:00.000Z",
+    "updatedAt": "2026-07-01T00:00:00.000Z"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "phase": "later-phase reference",
+  "gating": false,
+  "description": "Reference-only sample for a future lock-aware write guard. Phase 1 validates lock fields but does not implement runtime write protection, so this fixture is intentionally outside fixtures/invalid.",
+  "attempt": {
+    "target": {
+      "slideId": "slide_locked_001",
+      "elementId": "el_locked_title_001",
+      "locked": true,
+      "lockedBy": "user",
+      "lockedAt": "2026-07-01T00:00:00.000Z",
+      "lockReason": "Approved by user"
+    },
+    "requestedWrite": {
+      "scope": "text_only",
+      "field": "content.text",
+      "value": "This write should be rejected by a later-phase runtime guard"
+    }
+  }
+}
