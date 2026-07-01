@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -168,12 +168,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
 
       - name: Install JavaScript workspace
         shell: bash
@@ -216,7 +216,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Install JavaScript workspace
         shell: bash
@@ -249,7 +249,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Build shared-schema for Python smoke
         shell: bash
@@ -263,7 +263,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
 
       - name: Install API dependencies
         shell: bash

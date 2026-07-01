@@ -30,6 +30,10 @@ Do not build a one-shot AI PPT generator.
 - Keep agent responsibilities separate.
 - Validate AI outputs with schemas.
 
+## Workflow Preferences
+
+- OpenSpec archive-only changes that only sync specs and move completed change documents into `openspec/changes/archive/` may be committed and pushed directly to the default branch, currently `master`, after OpenSpec validation passes.
+
 ## Preferred First Implementation Order
 
 1. Shared schemas
