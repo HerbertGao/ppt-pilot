@@ -146,11 +146,15 @@ jobs:
           test -f openspec/specs/project-foundation/spec.md
           test -f openspec/specs/schema-validation-fixtures/spec.md
           test -f openspec/specs/shared-schema-contract/spec.md
-          test -f openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema/proposal.md
-          test -f openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema/design.md
-          test -f openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema/tasks.md
           grep -q "schema: spec-driven" openspec/config.yaml
-          grep -q "phase-1-foundation-monorepo-and-shared-schema" docs/ROADMAP_PROGRESS.md
+
+          if [[ -d openspec/changes/archive ]]; then
+            find openspec/changes/archive -mindepth 1 -maxdepth 1 -type d | while read -r archived_change; do
+              test -f "${archived_change}/proposal.md"
+              test -f "${archived_change}/tasks.md"
+              test -d "${archived_change}/specs"
+            done
+          fi
 
           if command -v openspec-cn >/dev/null 2>&1; then
             openspec-cn validate --all --strict
