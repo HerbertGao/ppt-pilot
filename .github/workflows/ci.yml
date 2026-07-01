@@ -142,10 +142,8 @@ jobs:
           test -f docs/ROADMAP_PROGRESS.md
           test -f docs/CI_GATES.md
           test -f openspec/config.yaml
-          test -f openspec/specs/ci-and-dependency-automation/spec.md
-          test -f openspec/specs/project-foundation/spec.md
-          test -f openspec/specs/schema-validation-fixtures/spec.md
-          test -f openspec/specs/shared-schema-contract/spec.md
+          test -d openspec/specs
+          find openspec/specs -mindepth 2 -maxdepth 2 -type f -name spec.md | grep -q .
           grep -q "schema: spec-driven" openspec/config.yaml
 
           if [[ -d openspec/changes/archive ]]; then
