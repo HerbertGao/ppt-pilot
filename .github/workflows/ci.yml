@@ -142,14 +142,18 @@ jobs:
           test -f docs/ROADMAP_PROGRESS.md
           test -f docs/CI_GATES.md
           test -f openspec/config.yaml
-          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/proposal.md
-          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/design.md
-          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/tasks.md
+          test -f openspec/specs/ci-and-dependency-automation/spec.md
+          test -f openspec/specs/project-foundation/spec.md
+          test -f openspec/specs/schema-validation-fixtures/spec.md
+          test -f openspec/specs/shared-schema-contract/spec.md
+          test -f openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema/proposal.md
+          test -f openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema/design.md
+          test -f openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema/tasks.md
           grep -q "schema: spec-driven" openspec/config.yaml
           grep -q "phase-1-foundation-monorepo-and-shared-schema" docs/ROADMAP_PROGRESS.md
 
           if command -v openspec-cn >/dev/null 2>&1; then
-            openspec-cn validate phase-1-foundation-monorepo-and-shared-schema --strict
+            openspec-cn validate --all --strict
           else
             echo "openspec-cn is not installed on this runner; artifact shape checks completed."
           fi
