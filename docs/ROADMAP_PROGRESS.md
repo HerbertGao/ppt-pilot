@@ -45,6 +45,7 @@
 - [x] 添加分层 CI，明确 docs/OpenSpec、shared-schema、Web、API、Dependabot PR 的准入标准
 - [x] 用 OpenSpec 新建 `phase-1-foundation-monorepo-and-shared-schema`
 - [x] 完成 `phase-1-foundation-monorepo-and-shared-schema` 实现评审/验收准备
+- [ ] 后续 DX：单独评估格式化策略、format check 与提交前钩子（例如 Prettier / lint-staged / simple-git-hooks），不要混入 Phase 1 修复
 - [ ] 后续：由主控验收并归档 `phase-1-foundation-monorepo-and-shared-schema`
 - [ ] 后续阶段：Phase 2 启动前确认 Phase 1 已归档
 
