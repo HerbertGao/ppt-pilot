@@ -11,7 +11,7 @@
   - Web：Next.js / React / TypeScript 可启动壳。
   - API：FastAPI 可启动壳与 health check（健康检查）。
 - 新增 `packages/shared-schema` 作为结构化 JSON（JavaScript Object Notation）契约源。
-- 定义第一版核心实体 schema：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`Version`、`Event`。
+- 定义第一版核心实体 schema：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`StyleProfile`、`Version`、`Event`。
 - 建立 TypeScript 类型、JSON Schema（模式）校验产物与 Python / Pydantic 模型生成策略或最小模型落点。
 - 新增 fixtures（样例）与校验入口，覆盖合法最小数据、无效枚举、默认 profile 回退、无效引用和风格归属边界；锁定写保护仅保留为后续阶段参考样例，不作为 Phase 1 必过非法校验。
 - 新增基础脚本，允许开发者执行安装、类型检查、schema 校验与 fixtures 验证。
@@ -42,7 +42,7 @@
 
 - 模式（schema）
   - 新增 `packages/shared-schema`，作为 TypeScript 类型、JSON Schema 与 Python / Pydantic 模型的统一来源。
-  - 首批覆盖实体：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`Version`、`Event`。
+  - 首批覆盖实体：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`StyleProfile`、`Version`、`Event`。
 - 代理（agent）
   - 本期不实现 Agent。
   - 后续 Agent 输出必须以本期 schema 为入库前校验依据。

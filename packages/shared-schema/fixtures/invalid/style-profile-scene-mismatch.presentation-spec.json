@@ -1,5 +1,12 @@
 {
   "entity": "PresentationSpec",
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "styleProfileId"
+      }
+    ]
+  },
   "data": {
     "topic": "Butterfly lifecycle workshop",
     "audience": "children ages 8-10",

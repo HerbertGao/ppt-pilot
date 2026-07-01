@@ -880,6 +880,10 @@ function validateSlideAt(input: unknown, path: string): ValidationDraft<Slide> {
   const updatedAt = readRequiredString(record, "updatedAt", path, errors);
   const lockFields = readLockFields(record, path, errors);
 
+  if (id !== undefined && planResult.data?.slideId !== undefined && planResult.data.slideId !== id) {
+    error(errors, childPath(childPath(path, "plan"), "slideId"), `must reference slide "${id}"`);
+  }
+
   if (id !== undefined && elements !== undefined) {
     for (let indexInArray = 0; indexInArray < elements.length; indexInArray += 1) {
       const element = elements[indexInArray];
@@ -1223,11 +1227,14 @@ function validateEventPayload(type: EventType, payload: JsonObject, path: string
       break;
     }
     case "QUESTION_POLICY_APPLIED": {
-      readRequiredEnum(payload, "mode", path, errors, QUESTION_MODES);
-      readRequiredNumber(payload, "sceneThreshold", path, errors, { min: 0, max: 1 });
+      const mode = readRequiredEnum(payload, "mode", path, errors, QUESTION_MODES);
+      const sceneThreshold = readRequiredNumber(payload, "sceneThreshold", path, errors, { min: 0, max: 1 });
       readRequiredNumber(payload, "maxQuestions", path, errors, { integer: true, min: 1 });
       readRequiredNumber(payload, "confidence", path, errors, { min: 0, max: 1 });
       readRequiredBoolean(payload, "thresholdReached", path, errors);
+      if (mode === "thorough" && sceneThreshold !== undefined && sceneThreshold < THOROUGH_MIN_SCENE_THRESHOLD) {
+        error(errors, childPath(path, "sceneThreshold"), `must be >= ${THOROUGH_MIN_SCENE_THRESHOLD} for thorough mode`);
+      }
       break;
     }
     case "REQUIREMENT_QUESTION_ASKED": {
@@ -1305,23 +1312,32 @@ export function validateEvent(input: unknown): ValidationResult<SchemaEvent> {
   return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
 }
 
-export function validateEntity<K extends EntityName>(entityName: K, input: unknown): ValidationResult<EntityMap[K]> {
+export function validateEntity<K extends EntityName>(entityName: K, input: unknown): ValidationResult<EntityMap[K]>;
+export function validateEntity(entityName: string, input: unknown): ValidationResult<unknown>;
+export function validateEntity(entityName: string, input: unknown): ValidationResult<unknown> {
   switch (entityName) {
     case "PresentationSpec":
-      return validatePresentationSpec(input) as ValidationResult<EntityMap[K]>;
+      return validatePresentationSpec(input);
     case "Presentation":
-      return validatePresentation(input) as ValidationResult<EntityMap[K]>;
+      return validatePresentation(input);
     case "Slide":
-      return validateSlide(input) as ValidationResult<EntityMap[K]>;
+      return validateSlide(input);
     case "SlidePlan":
-      return validateSlidePlan(input) as ValidationResult<EntityMap[K]>;
+      return validateSlidePlan(input);
     case "Element":
-      return validateElement(input) as ValidationResult<EntityMap[K]>;
+      return validateElement(input);
     case "Asset":
-      return validateAsset(input) as ValidationResult<EntityMap[K]>;
+      return validateAsset(input);
     case "Version":
-      return validateVersion(input) as ValidationResult<EntityMap[K]>;
+      return validateVersion(input);
     case "Event":
-      return validateEvent(input) as ValidationResult<EntityMap[K]>;
+      return validateEvent(input);
+    default:
+      return fail([
+        {
+          path: "$.entity",
+          message: `must be one of: ${ENTITY_NAMES.join(", ")}`,
+        },
+      ]);
   }
 }

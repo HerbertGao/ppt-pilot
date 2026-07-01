@@ -30,7 +30,7 @@ ExportArtifact
   "spec": {},
   "theme": {},
   "scene": "education | corporate | default",
-  "styleProfileId": "museum-children",
+  "styleProfileId": "style_museum_children",
   "slides": [],
   "createdAt": "",
   "updatedAt": ""
@@ -49,7 +49,7 @@ ExportArtifact
   "language": "zh-CN",
   "tone": "professional",
   "scene": "education | corporate | default",
-  "styleProfileId": "museum-children",
+  "styleProfileId": "style_museum_children",
   "style": {
     "visualStyle": "modern",
     "density": "medium",
@@ -281,7 +281,7 @@ group
   "actor": "user | ai | system",
   "payload": {
     "scene": "education",
-    "styleProfileId": "museum-children",
+    "styleProfileId": "style_museum_children",
     "questionPolicy": {
       "mode": "fast",
       "sceneThreshold": 0.82,

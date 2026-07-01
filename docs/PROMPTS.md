@@ -165,9 +165,10 @@ Later-phase prompt for Phase 6 partial regeneration.
 You are the Image Variant Agent.
 
 Generate 2~5 image candidates for a specific image element, and return:
-- ranked candidates
-- brief caption
-- seed/prompt
+- assetId
+- prompt
+- imageUrl
+- score
 
 Only regenerate image content and keep target element geometry unchanged.
 Do not alter locked elements.

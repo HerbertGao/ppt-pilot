@@ -53,7 +53,7 @@ Request:
   "title": "AI Agent Enterprise Applications",
   "initialRequest": "做一个面向管理层的 AI Agent 企业应用 PPT",
   "scene": "education | corporate | default",
-  "styleProfileId": "museum-children"
+  "styleProfileId": "style_museum_children"
 }
 ```
 
@@ -88,7 +88,7 @@ Request:
 ```json
 {
   "scene": "education | corporate | default",
-  "styleProfileId": "museum-children"
+  "styleProfileId": "style_museum_children"
 }
 ```
 
@@ -142,7 +142,7 @@ Request:
   "mode": "fast | thorough",
   "maxQuestions": 3,
   "scene": "education | corporate | default",
-  "styleProfileId": "museum-children"
+  "styleProfileId": "style_museum_children"
 }
 ```
 
@@ -193,7 +193,7 @@ Response:
 ```json
 {
   "confidence": 0.84,
-  "threshold": 0.75,
+  "threshold": 0.82,
   "thresholdReached": true,
   "skippedQuestionIds": [],
   "nextState": "REQUIREMENT_REVIEW"
@@ -210,7 +210,7 @@ Request:
 
 ```json
 {
-  "styleProfileId": "museum-children",
+  "styleProfileId": "style_museum_children",
   "allowSkip": true
 }
 ```
@@ -222,7 +222,7 @@ Response:
   "presentationSpecId": "spec_001",
   "confirmed": true,
   "scene": "education",
-  "styleProfileId": "museum-children",
+  "styleProfileId": "style_museum_children",
   "questionPolicy": {
     "mode": "fast",
     "sceneThreshold": 0.82,

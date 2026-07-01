@@ -46,7 +46,7 @@ Deliverables:
 - Canonical TypeScript types
 - JSON Schema validation artifacts
 - Python Pydantic model plan or initial generated models
-- Fixture examples for `Presentation`, `PresentationSpec`, `SlidePlan`, `Event`
+- Fixture examples for `Presentation`, `PresentationSpec`, `SlidePlan`, `StyleProfile`, `Event`
 - Basic validation tests for schema defaults and invalid input
 - Dependabot configuration for package ecosystems introduced in Phase 1
 - Path-aware CI with separate gates for docs/OpenSpec, shared-schema, Web, and API changes

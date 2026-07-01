@@ -9,7 +9,7 @@
 
 - [x] 2.1 在 `packages/shared-schema` 初始化包结构，提供统一导出入口（例如 `src/index.ts`）
 - [x] 2.2 定义基础枚举：`Scene`、`QuestionMode`、`WorkflowState`、`SlideStatus`、`ElementType`、`ActorType`、`RegenerateScope`（仅作为契约枚举，不实现再生流程）
-- [x] 2.3 定义核心实体 schema/type：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`Version`、`Event`
+- [x] 2.3 定义核心实体 schema/type：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`StyleProfile`、`Version`、`Event`
 - [x] 2.4 为 `scene/styleProfileId/questionPolicy` 定义最小字段约束与默认 profile ID 关系，保留 Phase 3 使用边界
 - [x] 2.5 为 `locked`、`Version`、`Event` 定义基础结构，保留后续锁定、版本和事件链路边界，但不实现运行时写保护
 - [x] 2.6 输出 JSON Schema 或等价运行时校验入口，使合法对象可验证、非法对象可返回字段路径错误

@@ -37,7 +37,7 @@
 - [x] 初始化 monorepo 目录：`apps/web`、`apps/api`、`packages/shared-schema`、`packages/ai-workflow`、`packages/ppt-engine`、`packages/exporter`
 - [x] 建立 TypeScript workspace 与基础脚本
 - [x] 建立 FastAPI 空壳与健康检查接口
-- [x] 在 `packages/shared-schema` 定义第一版核心实体：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`Version`、`Event`
+- [x] 在 `packages/shared-schema` 定义第一版核心实体：`PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`StyleProfile`、`Version`、`Event`
 - [x] 为 shared schema 准备 JSON Schema 输出或等价校验入口
 - [x] 补充 fixtures：默认项目、无效 scene、无效 styleProfile 归属、无效实体引用、默认 profile 回退、最小 slide plan
 - [x] 补充最小测试或验证命令，证明 schema 校验可运行

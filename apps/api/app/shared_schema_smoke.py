@@ -4,7 +4,12 @@ from __future__ import annotations
 
 import sys
 
-from .shared_schema_adapter import load_shared_schema_fixture, validate_shared_schema_fixture
+from .shared_schema_adapter import (
+    SharedSchemaBuildMissingError,
+    SharedSchemaValidationBridgeError,
+    load_shared_schema_fixture,
+    validate_shared_schema_fixture,
+)
 
 VALID_FIXTURE = "fixtures/valid/presentation-spec-minimal.json"
 INVALID_FIXTURE = "fixtures/invalid/invalid-scene.presentation-spec.json"
@@ -34,7 +39,13 @@ def main() -> int:
     try:
         for message in run_smoke():
             print(message)
-    except Exception as exc:
+    except (
+        AssertionError,
+        OSError,
+        ValueError,
+        SharedSchemaBuildMissingError,
+        SharedSchemaValidationBridgeError,
+    ) as exc:
         print(f"shared-schema smoke failed: {exc}", file=sys.stderr)
         return 1
 

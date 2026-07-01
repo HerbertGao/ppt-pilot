@@ -48,6 +48,7 @@ Create schemas for:
 - SlidePlan
 - Element
 - Asset
+- StyleProfile
 - Version
 - Event
 - ExportArtifact

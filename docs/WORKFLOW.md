@@ -194,7 +194,7 @@ Example events:
 }
 ```
 
-Phase 1 required events:
+Later-phase requirement-discovery events:
 
 ```text
 SCENE_STYLE_PROFILE_UPDATED

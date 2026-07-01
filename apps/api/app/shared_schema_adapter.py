@@ -18,6 +18,7 @@ BUILD_HINT = (
     "`pnpm --filter @ppt-pilot/shared-schema build` or the root validate/typecheck "
     "flow before running the API smoke check."
 )
+BRIDGE_TIMEOUT_SECONDS = 30
 
 NODE_VALIDATE_SCRIPT = r"""
 import { pathToFileURL } from "node:url";
@@ -93,14 +94,25 @@ def validate_shared_schema_entity(entity: str, data: Any) -> ValidationResult:
         raise SharedSchemaBuildMissingError(f"{BUILD_HINT} Missing file: {entrypoint}")
 
     payload = json.dumps({"entity": entity, "data": data}, ensure_ascii=False)
-    completed = subprocess.run(
-        ["node", "--input-type=module", "-e", NODE_VALIDATE_SCRIPT, str(entrypoint)],
-        input=payload,
-        text=True,
-        capture_output=True,
-        cwd=repo_root(),
-        check=False,
-    )
+    try:
+        completed = subprocess.run(
+            ["node", "--input-type=module", "-e", NODE_VALIDATE_SCRIPT, str(entrypoint)],
+            input=payload,
+            text=True,
+            capture_output=True,
+            cwd=repo_root(),
+            check=False,
+            timeout=BRIDGE_TIMEOUT_SECONDS,
+        )
+    except FileNotFoundError as exc:
+        raise SharedSchemaValidationBridgeError(
+            "Node.js is required to load packages/shared-schema/dist/index.js. "
+            "Install Node.js 20+ and run the shared-schema build before the API smoke check."
+        ) from exc
+    except subprocess.TimeoutExpired as exc:
+        raise SharedSchemaValidationBridgeError(
+            f"shared-schema validateEntity bridge timed out after {BRIDGE_TIMEOUT_SECONDS} seconds"
+        ) from exc
 
     if completed.returncode != 0:
         stderr = completed.stderr.strip()

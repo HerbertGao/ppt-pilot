@@ -5,7 +5,7 @@
 
 #### 场景:定义核心实体
 - **当** Phase 1 实现 shared-schema
-- **那么** 它必须至少定义 `PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`Version` 与 `Event`
+- **那么** 它必须至少定义 `PresentationSpec`、`Presentation`、`Slide`、`SlidePlan`、`Element`、`Asset`、`StyleProfile`、`Version` 与 `Event`
 
 #### 场景:禁止重复模型
 - **当** `apps/web` 或 `apps/api` 需要使用核心实体

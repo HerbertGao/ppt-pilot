@@ -68,9 +68,19 @@ function stopServer() {
   }
 }
 
-async function fetchRootPage() {
-  const response = await fetch(url);
-  const body = await response.text();
+async function fetchRootPage(remainingMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), Math.max(1, remainingMs));
+
+  let response;
+  let body;
+
+  try {
+    response = await fetch(url, { signal: controller.signal });
+    body = await response.text();
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     throw new Error(`Root page returned ${response.status}`);
@@ -91,7 +101,7 @@ async function waitForRootPage() {
     }
 
     try {
-      await fetchRootPage();
+      await fetchRootPage(deadline - Date.now());
       return;
     } catch (error) {
       lastError = error;

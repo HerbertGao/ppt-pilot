@@ -4,7 +4,7 @@ Canonical shared schema contract for PPTPilot structured presentation data.
 
 ## Phase 1 scope
 
-- Defines TypeScript contract types for `PresentationSpec`, `Presentation`, `Slide`, `SlidePlan`, `Element`, `Asset`, `Version`, and `Event`.
+- Defines TypeScript contract types for `PresentationSpec`, `Presentation`, `Slide`, `SlidePlan`, `Element`, `Asset`, `StyleProfile`, `Version`, and `Event`.
 - Exports enum contracts for `Scene`, `QuestionMode`, `WorkflowState`, `SlideStatus`, `ElementType`, `ActorType`, and `RegenerateScope`.
 - Provides runtime validation entrypoints from `src/index.ts`; this is the Phase 1 equivalent of JSON Schema validation and returns field-path errors.
 - Provides fixtures under `fixtures/valid`, `fixtures/invalid`, and `fixtures/defaults`.

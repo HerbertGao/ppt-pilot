@@ -58,7 +58,7 @@ rules:
     - 涉及锁定、版本、事件、导出链路时，说明保护边界和失败处理
     - 新增或变更行为要注明验证方式（模式校验 schema、事件（event）、版本（version））
   specs:
-    - 所有需求要映射到实体模型（Presentation / Spec / Outline / SlidePlan / Slide / Element / Asset / Event / Version）
+    - 所有需求要映射到实体模型（Presentation / Spec / Outline / SlidePlan / Slide / Element / Asset / StyleProfile / Event / Version）
     - 涉及 AI 生成行为必须声明结构化 JSON 输出与模式（schema）校验
     - 再生成（regenerate）、锁定/解锁（lock/unlock）行为必须给出前置条件、作用范围、幂等语义（idempotency）
   design:

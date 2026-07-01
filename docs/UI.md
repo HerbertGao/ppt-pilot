@@ -86,7 +86,7 @@ For current selection:
 - Shorten
 - Expand
 - Regenerate image
-- Generate image alternatives
+- Generate image alternatives (later phase)
 - Keep content, change layout
 - Keep layout, rewrite content
 - Explain why this slide looks weak
@@ -110,7 +110,7 @@ The initial interface should not be a blank prompt box only.
 Two modes:
 
 - 快速模式（fast，少问快产出）
-- 标准模式（thorough，更高置信度）
+- 深入模式（thorough，更高置信度）
 
 Use a chat-like flow with structured cards.
 

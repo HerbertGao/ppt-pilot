@@ -150,7 +150,7 @@ Produce the canonical Presentation Spec used by all downstream agents.
   "language": "zh-CN",
   "tone": "professional",
   "scene": "education | corporate | default",
-  "styleProfileId": "museum-children",
+  "styleProfileId": "style_museum_children",
   "questionPolicy": {
     "mode": "fast | thorough",
     "sceneThreshold": 0.82,

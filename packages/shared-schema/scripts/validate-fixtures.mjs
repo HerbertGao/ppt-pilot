@@ -65,14 +65,14 @@ function checkExpectedErrors(fixture, filePath, errors) {
     return;
   }
 
-  const matched = expectedErrors.some((expectedError) =>
+  const matched = expectedErrors.every((expectedError) =>
     errors.some((error) => {
       const pathMatched =
-        typeof expectedError.pathIncludes === "string" && error.path.includes(expectedError.pathIncludes);
+        typeof expectedError.pathIncludes !== "string" || error.path.includes(expectedError.pathIncludes);
       const messageMatched =
-        typeof expectedError.messageIncludes === "string" && error.message.includes(expectedError.messageIncludes);
+        typeof expectedError.messageIncludes !== "string" || error.message.includes(expectedError.messageIncludes);
 
-      return pathMatched || messageMatched;
+      return pathMatched && messageMatched;
     }),
   );
 
