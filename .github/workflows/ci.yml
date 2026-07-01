@@ -4,7 +4,7 @@ on:
   pull_request:
   push:
     branches:
-      - main
+      - master
   workflow_dispatch:
 
 permissions:
@@ -142,14 +142,21 @@ jobs:
           test -f docs/ROADMAP_PROGRESS.md
           test -f docs/CI_GATES.md
           test -f openspec/config.yaml
-          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/proposal.md
-          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/design.md
-          test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/tasks.md
+          test -d openspec/specs
+          find openspec/specs -mindepth 2 -maxdepth 2 -type f -name spec.md | grep -q .
           grep -q "schema: spec-driven" openspec/config.yaml
-          grep -q "phase-1-foundation-monorepo-and-shared-schema" docs/ROADMAP_PROGRESS.md
+
+          if [[ -d openspec/changes/archive ]]; then
+            find openspec/changes/archive -mindepth 1 -maxdepth 1 -type d | while read -r archived_change; do
+              test -f "${archived_change}/.openspec.yaml"
+              test -f "${archived_change}/proposal.md"
+              test -f "${archived_change}/tasks.md"
+              test -d "${archived_change}/specs"
+            done
+          fi
 
           if command -v openspec-cn >/dev/null 2>&1; then
-            openspec-cn validate phase-1-foundation-monorepo-and-shared-schema --strict
+            openspec-cn validate --all --strict
           else
             echo "openspec-cn is not installed on this runner; artifact shape checks completed."
           fi
@@ -168,12 +175,12 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
 
       - name: Install JavaScript workspace
         shell: bash
@@ -216,7 +223,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Install JavaScript workspace
         shell: bash
@@ -249,7 +256,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version-file: .nvmrc
 
       - name: Build shared-schema for Python smoke
         shell: bash
@@ -263,7 +270,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version-file: .python-version
 
       - name: Install API dependencies
         shell: bash

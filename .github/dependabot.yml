@@ -59,4 +59,17 @@ updates:
       github-actions:
         patterns:
           - "*"
+    ignore:
+      - dependency-name: "actions/checkout"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "actions/setup-node"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
+      - dependency-name: "actions/setup-python"
+        update-types:
+          - "version-update:semver-major"
+          - "version-update:semver-minor"
     open-pull-requests-limit: 5
