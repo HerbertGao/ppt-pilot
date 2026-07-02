@@ -57,5 +57,6 @@ export const EVENT_TYPES = [
   "REQUIREMENT_QUESTION_ASKED",
   "REQUIREMENT_QUESTION_SKIPPED",
   "PRESENTATION_SPEC_CONFIRMED",
+  "WORKFLOW_STATE_CHANGED",
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
