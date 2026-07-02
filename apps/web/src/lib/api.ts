@@ -187,7 +187,20 @@ async function apiFetch<T>(
   if (response.ok) {
     // 2xx with no body (shouldn't happen on these endpoints) -> {} as T.
     const text = await response.text();
-    return (text ? JSON.parse(text) : {}) as T;
+    if (!text) return {} as T;
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      // A malformed 2xx body (e.g. the proxy returning an HTML page with 200)
+      // must still surface as a structured ApiError, per this module's contract
+      // ("callers never see an unstructured exception") — mirroring toApiError.
+      throw new ApiError({
+        code: "MALFORMED_RESPONSE",
+        errorClass: "MALFORMED_RESPONSE",
+        status: response.status,
+        detailMessage: "响应体解析失败",
+      });
+    }
   }
 
   throw await toApiError(response);

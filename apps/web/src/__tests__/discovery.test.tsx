@@ -85,8 +85,10 @@ describe("discovery page — answer / skip only update confidence", () => {
     await user.click(within(q1).getByRole("button", { name: "提交回答" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0.75"),
+      expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toContain("0.75"),
     );
+    // aria-valuenow is the clamped percentage (0..100), never the raw confidence.
+    expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("100");
     // Still two question cards; no re-discover; answer sent selectedOptions.
     expect(container.querySelectorAll("[data-question-id]")).toHaveLength(2);
     expect(server.countOf("discover")).toBe(1);
@@ -95,6 +97,10 @@ describe("discovery page — answer / skip only update confidence", () => {
       "高管",
     ]);
     expect(q1.getAttribute("data-answered")).toBe("true");
+    // Answered card can no longer be skipped (mutual exclusion).
+    expect((within(q1).getByRole("button", { name: "跳过" }) as HTMLButtonElement).disabled).toBe(
+      true,
+    );
   });
 
   it("skip marks the card skipped, updates confidence, never re-discovers", async () => {
@@ -105,11 +111,15 @@ describe("discovery page — answer / skip only update confidence", () => {
     await user.click(within(q1).getByRole("button", { name: "跳过" }));
 
     await waitFor(() =>
-      expect(screen.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0.35"),
+      expect(screen.getByRole("progressbar").getAttribute("aria-valuetext")).toContain("0.35"),
     );
     expect(server.countOf("discover")).toBe(1);
     expect(server.countOf("skip")).toBe(1);
     expect(q1.getAttribute("data-skipped")).toBe("true");
+    // Skipped card can no longer be answered (mutual exclusion).
+    expect(
+      (within(q1).getByRole("button", { name: "提交回答" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 });
 

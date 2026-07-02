@@ -137,6 +137,8 @@ export default function DiscoveryPage() {
         confidence: view.confidence,
         threshold: view.threshold,
         thresholdReached: view.thresholdReached,
+        // A question is answered XOR skipped: drop any prior skip of this id.
+        skippedIds: session.skippedIds.filter((id) => id !== q.questionId),
         answeredIds: session.answeredIds.includes(q.questionId)
           ? session.answeredIds
           : [...session.answeredIds, q.questionId],
@@ -159,6 +161,8 @@ export default function DiscoveryPage() {
         confidence: view.confidence,
         threshold: view.threshold,
         thresholdReached: view.thresholdReached,
+        // A question is answered XOR skipped: drop any prior answer of this id.
+        answeredIds: session.answeredIds.filter((id) => id !== q.questionId),
         skippedIds: session.skippedIds.includes(q.questionId)
           ? session.skippedIds
           : [...session.skippedIds, q.questionId],
@@ -217,6 +221,11 @@ export default function DiscoveryPage() {
   if (!project) return null;
 
   const ready = session && (session.thresholdReached || session.questions.length === 0);
+  // "进入复核" is only meaningful once the driven NEW->DISCOVERY has landed
+  // (project refetched). Until then project.status may still be the stale
+  // NEW_PROJECT, for which planEnterReview is a no-op — so gate the button.
+  const canEnterReview =
+    project.status === "REQUIREMENT_DISCOVERY" || project.status === "REQUIREMENT_REVIEW";
 
   return (
     <WorkflowShell
@@ -298,7 +307,7 @@ export default function DiscoveryPage() {
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
-                  <Button type="button" onClick={onEnterReview} disabled={busy}>
+                  <Button type="button" onClick={onEnterReview} disabled={busy || !canEnterReview}>
                     进入复核
                   </Button>
                 </CardFooter>
@@ -321,7 +330,12 @@ export default function DiscoveryPage() {
 
             {!ready && session.questions.length > 0 ? (
               <div>
-                <Button type="button" variant="outline" onClick={onEnterReview} disabled={busy}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onEnterReview}
+                  disabled={busy || !canEnterReview}
+                >
                   进入复核
                 </Button>
               </div>
@@ -350,9 +364,10 @@ function ProgressBar({ session }: { session: DiscoverySession }) {
           className="h-full bg-primary transition-all"
           style={{ width: `${pct}%` }}
           role="progressbar"
-          aria-valuenow={session.confidence}
+          aria-valuenow={pct}
           aria-valuemin={0}
-          aria-valuemax={session.threshold}
+          aria-valuemax={100}
+          aria-valuetext={`置信度 ${session.confidence.toFixed(2)} / 阈值 ${session.threshold.toFixed(2)}`}
         />
       </div>
     </div>
@@ -410,6 +425,7 @@ function QuestionCardView({
         ) : null}
         {question.freeTextAllowed ? (
           <Textarea
+            aria-label={`${question.prompt} 补充说明`}
             value={freeText}
             onChange={(e) => setFreeText(e.target.value)}
             placeholder="补充说明（可选）"
@@ -423,7 +439,9 @@ function QuestionCardView({
           type="button"
           size="sm"
           onClick={() => onAnswer(question, selected, freeText)}
-          disabled={disabled || (selected.length === 0 && !freeText.trim())}
+          disabled={
+            disabled || answered || skipped || (selected.length === 0 && !freeText.trim())
+          }
         >
           提交回答
         </Button>
@@ -432,7 +450,7 @@ function QuestionCardView({
           size="sm"
           variant="outline"
           onClick={() => onSkip(question)}
-          disabled={disabled}
+          disabled={disabled || answered || skipped}
         >
           跳过
         </Button>

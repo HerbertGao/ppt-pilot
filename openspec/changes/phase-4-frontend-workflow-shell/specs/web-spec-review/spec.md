@@ -18,7 +18,7 @@
 
 ### 需求:确认并展示已确认 Spec
 
-Spec review 页必须提供确认动作调用 `POST /api/projects/{id}/requirements/confirm`。确认成功后必须用 `confirm` **响应**里的完整字段（`questionPolicy`、`riskNotes`、`scene`、`styleProfileId`、`presentationSpecId`）展示「已确认的 Spec」，并反映项目仍停留在 `REQUIREMENT_REVIEW`（本期不进入 outline，后续阶段前向边尚不存在）。**已知限制**：`GET project` 不返回 `confirmedByUser`，故「已确认」展示态**在硬刷新后不可恢复**——刷新后前端无法得知项目已确认，会退化为展示可确认的复核页；再次点击确认是幂等安全的（后端重建 spec、置 `confirmedByUser`、追加一条事件），本期接受此退化，不加后端读取端点。
+Spec review 页必须提供确认动作调用 `POST /api/projects/{id}/requirements/confirm`。确认成功后必须用 `confirm` **响应**里的完整字段（`questionPolicy`、`riskNotes`、`scene`、`styleProfileId`、`presentationSpecId`）展示「已确认的 Spec」，并反映项目仍停留在 `REQUIREMENT_REVIEW`（本期不进入 outline，后续阶段前向边尚不存在）。**已知限制**：`GET project` 不返回 `confirmedByUser`，故「已确认」展示态**在硬刷新后不可恢复**——刷新后前端无法得知项目已确认，会退化为展示可确认的复核页；再次点击确认**重放安全**（不崩溃、不产生错误态），但**非严格幂等**——后端每次都重建 spec 并生成**新的 `presentationSpecId`**、追加一条 `PRESENTATION_SPEC_CONFIRMED` 事件（去重/短路重复确认属后端职责，非本纯前端期范围）。本期接受此退化，不加后端读取端点。
 
 #### 场景:确认后展示完整 Spec
 
@@ -28,7 +28,7 @@ Spec review 页必须提供确认动作调用 `POST /api/projects/{id}/requireme
 #### 场景:硬刷新后已确认态不可恢复（接受退化）
 
 - **当** 已确认项目硬刷新复核页（`GET project` 无 `confirmedByUser`）
-- **那么** 界面退化为可确认复核页；再次确认幂等安全，不崩溃、不产生错误态
+- **那么** 界面退化为可确认复核页；再次确认**重放安全**（不崩溃、不产生错误态），但非严格幂等（后端重建 spec、生成新 `presentationSpecId`、追加事件）
 
 #### 场景:Spec 校验失败
 
