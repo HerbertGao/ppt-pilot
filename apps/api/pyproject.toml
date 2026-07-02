@@ -13,7 +13,7 @@ dependencies = [
 # introduce PostgreSQL/Redis/Celery/RQ/S3/auth (task 1.5).
 [project.optional-dependencies]
 test = [
-  "pytest>=8,<9",
+  "pytest>=8,<10",
   "httpx>=0.27,<1.0"
 ]
 
