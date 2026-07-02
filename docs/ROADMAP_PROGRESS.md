@@ -5,8 +5,8 @@
 ## 1. 当前判断
 
 - 已完成：`Phase 0`（文档与架构理解）
-- 已实现完成，待主控验收/归档：`Phase 1`（工程底座、monorepo、shared schema）
-- 当前后续：完成 `phase-1-foundation-monorepo-and-shared-schema` 主控验收与归档后，再启动 `Phase 2`
+- 已完成并归档：`Phase 1`（工程底座、monorepo、shared schema），归档件位于 `openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema`
+- 当前后续：启动 `Phase 2`，先创建 `phase-2-api-skeleton-and-workflow-state` OpenSpec 提案
 - 已废弃：旧 `phase-1-requirement-discovery-mvp` 提案
 - 原因：需求澄清依赖共享 schema、API 状态机、事件模型与基础工程结构，不应作为技术实现第一期
 
@@ -15,8 +15,8 @@
 | 阶段 | 名称 | 技术目标 | 状态 | 建议 OpenSpec 变更 | 关键验收 |
 | --- | --- | --- | --- | --- | --- |
 | Phase 0 | 文档与架构 | 建立产品、架构、数据模型、工作流与 OpenSpec 语境 | 已完成 | - | 文档可指导 AI agent 与人工协作 |
-| Phase 1 | 工程底座与共享契约 | 建立 monorepo、前后端空壳、`packages/shared-schema`、schema 校验、Dependabot 与分层 CI | 实现已完成，待主控验收/归档 | `phase-1-foundation-monorepo-and-shared-schema` | 仓库可安装/启动；共享 schema 可生成类型并校验样例；文档 PR 不触发全量 CI |
-| Phase 2 | 后端 API 与工作流状态机 | FastAPI、项目生命周期、状态流转、事件写入、错误约定 | 未启动 | `phase-2-api-skeleton-and-workflow-state` | 创建项目与状态推进可运行；非法状态不写持久状态 |
+| Phase 1 | 工程底座与共享契约 | 建立 monorepo、前后端空壳、`packages/shared-schema`、schema 校验、Dependabot 与分层 CI | 已完成并归档 | `phase-1-foundation-monorepo-and-shared-schema` | 仓库可安装/启动；共享 schema 可生成类型并校验样例；文档 PR 不触发全量 CI |
+| Phase 2 | 后端 API 与工作流状态机 | FastAPI、项目生命周期、状态流转、事件写入、错误约定 | 待启动（下一期） | `phase-2-api-skeleton-and-workflow-state` | 创建项目与状态推进可运行；非法状态不写持久状态 |
 | Phase 3 | 需求澄清与 Spec Builder | Requirement Discovery Agent、问题策略、跳过风险、Spec 确认 | 未启动 | `phase-3-requirement-discovery-and-spec-builder` | 模糊输入可生成可确认的 `PresentationSpec` |
 | Phase 4 | 前端工作流壳 | Next.js 立项、需求澄清、Spec review、状态展示 | 未启动 | `phase-4-frontend-workflow-shell` | 用户可在 Web 中完成创建、问答与 Spec 确认 |
 | Phase 5 | 大纲与 Slide Plan | Outline Agent、Slide Planner Agent、可编辑结构 | 未启动 | `phase-5-outline-and-slide-planning` | 确认 Spec 后可生成并编辑 outline/slide plan |
@@ -29,7 +29,8 @@
 ## 3. 当前 OpenSpec 状态
 
 - 当前不应继续旧提案：`phase-1-requirement-discovery-mvp`
-- 当前提案：`phase-1-foundation-monorepo-and-shared-schema` 已实现完成，待主控验收/归档
+- 已归档提案：`phase-1-foundation-monorepo-and-shared-schema`
+- 无进行中的 change；下一提案：`phase-2-api-skeleton-and-workflow-state`
 - 旧提案中的场景、风格、fast/thorough、跳过问题等内容保留为产品方向，但实现归属调整到 Phase 3
 
 ## 4. Phase 1 推荐 TODO
@@ -45,9 +46,8 @@
 - [x] 添加分层 CI，明确 docs/OpenSpec、shared-schema、Web、API、Dependabot PR 的准入标准
 - [x] 用 OpenSpec 新建 `phase-1-foundation-monorepo-and-shared-schema`
 - [x] 完成 `phase-1-foundation-monorepo-and-shared-schema` 实现评审/验收准备
-- [ ] 后续 DX：单独评估格式化策略、format check 与提交前钩子（例如 Prettier / lint-staged / simple-git-hooks），不要混入 Phase 1 修复
-- [ ] 后续：由主控验收并归档 `phase-1-foundation-monorepo-and-shared-schema`
-- [ ] 后续阶段：Phase 2 启动前确认 Phase 1 已归档
+- [x] 完成 `phase-1-foundation-monorepo-and-shared-schema` 主控验收并归档
+- [ ] 后续 DX：单独评估格式化策略、format check 与提交前钩子（例如 Prettier / lint-staged / simple-git-hooks），不要混入阶段实现修复
 
 ## 5. 执行规则
 
