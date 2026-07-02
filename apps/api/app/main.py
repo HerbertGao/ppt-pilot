@@ -7,6 +7,7 @@ mapped by the handlers below so no FastAPI default `detail` array leaks out.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import FastAPI, Request
@@ -16,6 +17,8 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from .errors import DomainError
 from .routes import router
+
+logger = logging.getLogger("ppt_pilot_api")
 
 app = FastAPI(
     title="PPTPilot API",
@@ -79,6 +82,16 @@ async def handle_http_exception(
     )
     message = exc.detail if isinstance(exc.detail, str) else code
     return _error_response(exc.status_code, error, code, message)
+
+
+@app.exception_handler(Exception)
+async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+    # Catch-all so an unexpected error still honors the unified {error,code,details}
+    # contract instead of leaking Starlette's plain-text 500.
+    logger.exception("unhandled error on %s %s", request.method, request.url.path)
+    return _error_response(
+        500, "INTERNAL_ERROR", "INTERNAL_ERROR", "internal server error"
+    )
 
 
 @app.get("/health", tags=["system"])

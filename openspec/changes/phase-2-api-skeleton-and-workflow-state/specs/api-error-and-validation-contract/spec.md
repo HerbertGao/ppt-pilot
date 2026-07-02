@@ -2,7 +2,7 @@
 
 ### 需求:统一错误响应结构
 
-所有业务 API 的错误响应必须使用统一结构：顶层 `error`（错误分类）、`code`（稳定的机器可读错误码）、以及 `details`（含 `field` / `message` 等定位信息）。`error` 与 `code` 的映射必须稳定且明确：`VALIDATION_ERROR` 覆盖 `{INVALID_SCENE, STYLE_PROFILE_MISMATCH, INVALID_WORKFLOW_STATE, INVALID_REQUEST_BODY}`；`STATE_ERROR` 覆盖 `{INVALID_STATE_TRANSITION}`；`NOT_FOUND` 覆盖 `{PROJECT_NOT_FOUND}`。同一类错误必须使用同一稳定 `error`/`code`，禁止用裸文本或不稳定字符串代替。框架原生的请求体校验错误（FastAPI 对畸形请求体 / 缺失字段 / 类型错误抛出的 `RequestValidationError`，默认 422 `detail` 结构）必须经异常处理器映射为 `error=VALIDATION_ERROR`、`code=INVALID_REQUEST_BODY`，禁止让框架默认错误体绕过统一约定。框架路由级 `HTTPException`（路由未命中 / 方法不允许等）按下方"框架级路由未命中不复用业务错误码"场景映射为中性错误码，禁止复用业务码。当多种错误条件同时成立时，判定优先级为：框架级请求体校验（`INVALID_REQUEST_BODY`，因框架在进入处理器前解析请求体）优先于路径资源存在性（`PROJECT_NOT_FOUND`）优先于目标状态校验（`INVALID_WORKFLOW_STATE` / `INVALID_STATE_TRANSITION`）。
+所有业务 API 的错误响应必须使用统一结构：顶层 `error`（错误分类）、`code`（稳定的机器可读错误码）、以及 `details`（含 `field` / `message` 等定位信息）。`error` 与 `code` 的映射必须稳定且明确：`VALIDATION_ERROR` 覆盖 `{INVALID_SCENE, STYLE_PROFILE_MISMATCH, INVALID_WORKFLOW_STATE, INVALID_REQUEST_BODY}`；`STATE_ERROR` 覆盖 `{INVALID_STATE_TRANSITION}`；`NOT_FOUND` 覆盖 `{PROJECT_NOT_FOUND}`。同一类错误必须使用同一稳定 `error`/`code`，禁止用裸文本或不稳定字符串代替。框架原生的请求体校验错误（FastAPI 对畸形请求体 / 缺失字段 / 类型错误抛出的 `RequestValidationError`，默认 422 `detail` 结构）必须经异常处理器映射为 `error=VALIDATION_ERROR`、`code=INVALID_REQUEST_BODY`，禁止让框架默认错误体绕过统一约定。框架路由级 `HTTPException`（路由未命中 / 方法不允许等）按下方"框架级路由未命中不复用业务错误码"场景映射为中性错误码，禁止复用业务码。当多种错误条件同时成立时，判定优先级为：框架级请求体校验（`INVALID_REQUEST_BODY`，因框架在进入处理器前解析请求体）优先于路径资源存在性（`PROJECT_NOT_FOUND`）优先于目标状态校验（`INVALID_WORKFLOW_STATE` / `INVALID_STATE_TRANSITION`）。任何未被上述处理器捕获的意外异常必须经统一的 catch-all 处理器映射为 `error=INTERNAL_ERROR`、`code=INTERNAL_ERROR` 的 500 响应（并记录日志），禁止泄漏框架默认的纯文本 500。
 
 #### 场景:校验错误返回稳定结构
 
@@ -18,6 +18,11 @@
 
 - **当** 客户端访问不存在的项目
 - **那么** 响应必须使用 `code=PROJECT_NOT_FOUND` 的统一错误结构
+
+#### 场景:意外异常返回统一 500
+
+- **当** 处理请求时发生未被领域/框架处理器捕获的意外异常
+- **那么** catch-all 处理器必须返回 `error=INTERNAL_ERROR`、`code=INTERNAL_ERROR` 的 500 统一结构，而非框架默认纯文本 500
 
 #### 场景:框架级路由未命中不复用业务错误码
 

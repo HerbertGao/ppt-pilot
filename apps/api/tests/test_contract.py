@@ -324,6 +324,27 @@ def test_disallowed_method_returns_neutral_http_error(client):
     assert resp.json()["code"] == "HTTP_ERROR"
 
 
+def test_unexpected_exception_returns_unified_500(monkeypatch):
+    # An unexpected (non-domain, non-framework) error must still honor the
+    # unified {error,code,details} contract via the catch-all handler.
+    from starlette.testclient import TestClient
+
+    import app.routes as routes_module
+    from app.main import app
+
+    def _boom(*_args, **_kwargs):
+        raise RuntimeError("unexpected")
+
+    monkeypatch.setattr(routes_module, "create_project", _boom)
+    # raise_server_exceptions=False so the 500 response is returned, not re-raised.
+    client = TestClient(app, raise_server_exceptions=False)
+    resp = client.post("/api/projects", json={})
+    assert resp.status_code == 500, resp.text
+    data = resp.json()
+    assert data["error"] == "INTERNAL_ERROR"
+    assert data["code"] == "INTERNAL_ERROR"
+
+
 def test_backend_known_states_match_shared_schema_exact_set():
     # spec 3.4: backend recognises exactly the 12 shared-schema WORKFLOW_STATES.
     expected = {
