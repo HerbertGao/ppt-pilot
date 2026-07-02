@@ -1,0 +1,21 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_workflow_state_changed_invalid_001",
+    "projectId": "proj_minimal_001",
+    "type": "WORKFLOW_STATE_CHANGED",
+    "actor": "user",
+    "payload": {
+      "previousState": "NEW_PROJECT",
+      "nextState": "NOT_A_WORKFLOW_STATE"
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "payload.nextState"
+      }
+    ]
+  }
+}

@@ -38,9 +38,15 @@ Future options:
 - Server-Sent Events for streaming agent logs
 - GraphQL is not necessary for MVP
 
-## 2. Project APIs (Roadmap Draft)
+## 2. Project APIs
 
-### Create Project
+Phase 2 (implemented): `POST /api/projects`, `GET /api/projects/{projectId}`, and
+`POST /api/projects/{projectId}/transitions`. `PATCH /api/projects/{projectId}/profile`
+remains a roadmap draft and is **not** implemented in Phase 2.
+
+All Phase 2 business errors follow the unified error convention in §2.4.
+
+### Create Project (Phase 2 implemented)
 
 ```http
 POST /api/projects
@@ -67,17 +73,64 @@ Response:
 ```json
 {
   "projectId": "proj_001",
-  "status": "REQUIREMENT_DISCOVERY"
+  "status": "NEW_PROJECT"
 }
 ```
 
-### Get Project
+创建落地的初始状态为 `NEW_PROJECT`。创建时的 `scene`/`styleProfileId` 归属校验失败返回统一错误（`INVALID_SCENE` / `STYLE_PROFILE_MISMATCH`，见 §2.4），且不写入任何持久状态。
+
+### Get Project (Phase 2 implemented)
 
 ```http
 GET /api/projects/{projectId}
 ```
 
-### Update Project Scene/Profile
+Response:
+
+```json
+{
+  "projectId": "proj_001",
+  "title": "...",
+  "scene": "default",
+  "styleProfileId": "style_default",
+  "status": "NEW_PROJECT"
+}
+```
+
+- 项目不存在时返回 `code=PROJECT_NOT_FOUND`（见 §2.4）。
+- 读取无副作用。
+
+### Transition Workflow State (Phase 2 implemented)
+
+```http
+POST /api/projects/{projectId}/transitions
+```
+
+Request:
+
+```json
+{
+  "to": "REQUIREMENT_DISCOVERY"
+}
+```
+
+Response:
+
+```json
+{
+  "projectId": "proj_001",
+  "status": "REQUIREMENT_DISCOVERY"
+}
+```
+
+Notes:
+
+- 仅驱动本期合法边：前向 `NEW_PROJECT → REQUIREMENT_DISCOVERY → REQUIREMENT_REVIEW`，回退 `REQUIREMENT_REVIEW → REQUIREMENT_DISCOVERY`。`OUTLINE_GENERATION` 及之后的边留待后续阶段。
+- 每次成功转移追加一条 `WORKFLOW_STATE_CHANGED` 事件（`actor=user`，`payload={previousState, nextState}`，见 Data Model）。
+- 错误码：未知状态字符串 → `INVALID_WORKFLOW_STATE`；已知状态但非法邻接边 → `INVALID_STATE_TRANSITION`；项目不存在 → `PROJECT_NOT_FOUND`；缺失/畸形请求体或缺 `to` → `INVALID_REQUEST_BODY`（见 §2.4）。
+- 任一失败路径都不改状态、不追加事件。
+
+### Update Project Scene/Profile (Roadmap Draft — not Phase 2)
 
 ```http
 PATCH /api/projects/{projectId}/profile
@@ -123,6 +176,39 @@ Notes:
     "value": "style_corporate_default",
     "scene": "education",
     "message": "styleProfileId does not belong to scene"
+  }
+}
+```
+
+### 2.4 Unified Error Convention (Phase 2)
+
+所有业务 API 的错误响应使用统一结构 `{error, code, details}`：`error` 为错误分类，`code` 为稳定的机器可读错误码，`details` 含 `field` / `message` 等定位信息。
+
+错误分类 → 错误码映射（稳定且明确）：
+
+```text
+VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY   (HTTP 400)
+STATE_ERROR      -> INVALID_STATE_TRANSITION                                                                  (HTTP 409)
+NOT_FOUND        -> PROJECT_NOT_FOUND                                                                          (HTTP 404)
+```
+
+框架原生错误（畸形 JSON / 字段类型错误触发的 `RequestValidationError`，以及 `HTTPException`）经异常处理器映射为同一结构（`error=VALIDATION_ERROR`、`code=INVALID_REQUEST_BODY`），不返回 FastAPI 默认的 `detail` 数组。
+
+当多种错误条件同时成立时的判定优先级：
+
+```text
+INVALID_REQUEST_BODY  >  PROJECT_NOT_FOUND  >  目标状态校验 (INVALID_WORKFLOW_STATE / INVALID_STATE_TRANSITION)
+```
+
+任何被拒绝的请求都不产生持久副作用（不创建/更新项目、不推进状态、不追加事件）。错误结构示例：
+
+```json
+{
+  "error": "STATE_ERROR",
+  "code": "INVALID_STATE_TRANSITION",
+  "details": {
+    "field": "to",
+    "message": "..."
   }
 }
 ```

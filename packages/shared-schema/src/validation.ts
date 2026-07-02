@@ -1269,6 +1269,11 @@ function validateEventPayload(type: EventType, payload: JsonObject, path: string
 
       break;
     }
+    case "WORKFLOW_STATE_CHANGED": {
+      readRequiredEnum(payload, "previousState", path, errors, WORKFLOW_STATES);
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
   }
 }
 

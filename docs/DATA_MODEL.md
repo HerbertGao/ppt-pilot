@@ -294,7 +294,7 @@ group
 }
 ```
 
-Phase 1 event types:
+Event types:
 
 ```text
 SCENE_STYLE_PROFILE_UPDATED
@@ -302,9 +302,10 @@ QUESTION_POLICY_APPLIED
 REQUIREMENT_QUESTION_ASKED
 REQUIREMENT_QUESTION_SKIPPED
 PRESENTATION_SPEC_CONFIRMED
+WORKFLOW_STATE_CHANGED
 ```
 
-Minimum Phase 1 event payloads:
+Minimum event payloads:
 
 ```text
 SCENE_STYLE_PROFILE_UPDATED: { previousScene, previousStyleProfileId, scene, styleProfileId }
@@ -312,6 +313,7 @@ QUESTION_POLICY_APPLIED: { mode, sceneThreshold, maxQuestions, confidence, thres
 REQUIREMENT_QUESTION_ASKED: { questionId, prompt, kind, options, confidenceBefore }
 REQUIREMENT_QUESTION_SKIPPED: { questionId, reason, confidenceAfter, riskNote }
 PRESENTATION_SPEC_CONFIRMED: { presentationSpecId, scene, styleProfileId, questionPolicy, riskNotes, nextState }
+WORKFLOW_STATE_CHANGED: { previousState, nextState }  (initiator via top-level Event.actor, not payload)
 ```
 
 ## 13. Lock Model
