@@ -233,12 +233,13 @@ jobs:
           corepack prepare pnpm@9 --activate
           pnpm install --no-frozen-lockfile
 
-      - name: Typecheck, build, and smoke-start Web shell
+      - name: Typecheck, test, build, and smoke-start Web shell
         shell: bash
         run: |
           set -euo pipefail
           pnpm --filter @ppt-pilot/shared-schema build
           pnpm --filter @ppt-pilot/web typecheck
+          pnpm --filter @ppt-pilot/web test
           pnpm --filter @ppt-pilot/web build
           pnpm --filter @ppt-pilot/web smoke-start
 

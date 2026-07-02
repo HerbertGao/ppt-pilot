@@ -194,3 +194,22 @@ This belongs to Phase 6 partial regeneration, not Phase 1 requirement discovery.
 - Keep original element geometry when only image is regenerated.
 - User can request more batches if none are suitable.
 - Do not auto-rollback to old image; selection is user-driven.
+
+## 12. Landed Pages (Phase 4)
+
+Phase 4 (`phase-4-frontend-workflow-shell`) ships the workflow shell — the
+creation → discovery → review flow, up to Spec confirmation. Later phases
+(outline/slide/canvas/export) are not exposed until a Spec is confirmed.
+
+- `/` — project creation: initial request + scene/style selection → `POST /api/projects`.
+- `/projects/[id]/discovery` — requirement discovery: mode (fast/thorough),
+  structured question cards, per-question answer/skip with confidence progress,
+  and an explicit "enter review" action.
+- `/projects/[id]/review` — Spec review: pre-confirm summary (obtainable fields
+  only), confirm rendering the full confirmed Spec, and a rollback-first
+  scene/style edit path.
+- Shared shell shows the current `WorkflowState` + scene/style and gates later
+  stages behind confirmation.
+
+Not in this phase: HTML preview, Canvas/Konva editing, PPTX export, AI
+generation, lock-aware regeneration, and the mobile companion.
