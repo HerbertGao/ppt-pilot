@@ -27,6 +27,17 @@ updates:
         patterns:
           - "@types/*"
           - "typescript"
+      web-ui-and-tooling:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/*"
+          - "postcss"
+          - "tw-animate-css"
+          - "@radix-ui/*"
+          - "class-variance-authority"
+          - "clsx"
+          - "tailwind-merge"
+          - "lucide-react"
     open-pull-requests-limit: 5
 
   - package-ecosystem: "npm"

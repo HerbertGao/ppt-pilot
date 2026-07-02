@@ -1,36 +1,100 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}
+
+/* Phase 1 shell styles — retained so the existing shell page keeps rendering. */
 :root {
   --ink: #16201c;
-  --muted: #5f6f68;
-  --paper: #fff8e8;
-  --lime: #d5f25f;
-  --teal: #0d6d61;
-  --clay: #c96f3d;
+  --muted-ink: #5f6f68;
   --line: rgba(22, 32, 28, 0.14);
-}
-
-* {
-  box-sizing: border-box;
-}
-
-html {
-  min-height: 100%;
-  background:
-    radial-gradient(circle at 18% 18%, rgba(213, 242, 95, 0.52), transparent 28rem),
-    radial-gradient(circle at 82% 8%, rgba(201, 111, 61, 0.28), transparent 22rem),
-    linear-gradient(135deg, #fff8e8 0%, #f4ead4 52%, #e7f0dc 100%);
-}
-
-body {
-  min-height: 100vh;
-  margin: 0;
-  color: var(--ink);
-  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
 }
 
 .shell {
   width: min(1080px, calc(100% - 32px));
   margin: 0 auto;
   padding: 72px 0;
+  min-height: 100vh;
+  color: var(--ink);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(213, 242, 95, 0.52), transparent 28rem),
+    radial-gradient(circle at 82% 8%, rgba(201, 111, 61, 0.28), transparent 22rem),
+    linear-gradient(135deg, #fff8e8 0%, #f4ead4 52%, #e7f0dc 100%);
+  font-family: "Avenir Next", "Gill Sans", "Trebuchet MS", sans-serif;
 }
 
 .hero {
@@ -45,36 +109,30 @@ body {
 
 .eyebrow {
   margin: 0 0 14px;
-  color: var(--teal);
+  color: #0d6d61;
   font-size: 0.78rem;
   font-weight: 800;
   letter-spacing: 0.16em;
   text-transform: uppercase;
 }
 
-h1,
-h2,
-p {
-  margin-top: 0;
-}
-
-h1 {
-  margin-bottom: 20px;
+.shell h1 {
+  margin: 0 0 20px;
   font-size: clamp(4rem, 12vw, 9rem);
   line-height: 0.86;
   letter-spacing: -0.08em;
 }
 
-h2 {
-  margin-bottom: 12px;
+.shell h2 {
+  margin: 0 0 12px;
   font-size: clamp(1.6rem, 4vw, 2.6rem);
   letter-spacing: -0.04em;
 }
 
 .lede {
   max-width: 600px;
-  margin-bottom: 0;
-  color: var(--muted);
+  margin: 0;
+  color: var(--muted-ink);
   font-size: clamp(1.1rem, 2vw, 1.35rem);
   line-height: 1.6;
 }
@@ -108,16 +166,16 @@ h2 {
   background: rgba(255, 248, 232, 0.7);
 }
 
-dt {
+.shell dt {
   margin-bottom: 8px;
-  color: var(--clay);
+  color: #c96f3d;
   font-size: 0.8rem;
   font-weight: 800;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
-dd {
+.shell dd {
   margin: 0;
   overflow-wrap: anywhere;
   font-weight: 700;
@@ -125,8 +183,8 @@ dd {
 
 .boundary-card p {
   max-width: 760px;
-  margin-bottom: 0;
-  color: var(--muted);
+  margin: 0;
+  color: var(--muted-ink);
   line-height: 1.7;
 }
 
