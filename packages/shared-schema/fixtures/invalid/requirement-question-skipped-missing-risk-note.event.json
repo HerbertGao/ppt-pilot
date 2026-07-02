@@ -1,0 +1,22 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_requirement_question_skipped_invalid_001",
+    "projectId": "proj_minimal_001",
+    "type": "REQUIREMENT_QUESTION_SKIPPED",
+    "actor": "user",
+    "payload": {
+      "questionId": "q_audience_001",
+      "reason": "user_skipped",
+      "confidenceAfter": 0.55
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "payload.riskNote"
+      }
+    ]
+  }
+}

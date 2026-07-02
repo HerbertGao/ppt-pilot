@@ -1,0 +1,17 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_requirement_question_asked_001",
+    "projectId": "proj_minimal_001",
+    "type": "REQUIREMENT_QUESTION_ASKED",
+    "actor": "ai",
+    "payload": {
+      "questionId": "q_audience_001",
+      "prompt": "Who is the primary audience for this presentation?",
+      "kind": "single_select",
+      "options": ["students", "teachers", "administrators"],
+      "confidenceBefore": 0.55
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_question_policy_applied_invalid_001",
+    "projectId": "proj_minimal_001",
+    "type": "QUESTION_POLICY_APPLIED",
+    "actor": "system",
+    "payload": {
+      "mode": "thorough",
+      "sceneThreshold": 0.85,
+      "maxQuestions": 5,
+      "confidence": 0.7
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "payload.thresholdReached"
+      }
+    ]
+  }
+}

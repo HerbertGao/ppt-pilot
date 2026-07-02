@@ -345,6 +345,65 @@ def test_unexpected_exception_returns_unified_500(monkeypatch):
     assert data["code"] == "INTERNAL_ERROR"
 
 
+# --------------------------------------------------------------------------- #
+# Phase 3 error contract (tasks 5.1 / 5.1a / 5.2 / 5.3): new stable codes map to
+# the unified {error,code,details} envelope with no persistent side effect.
+# The endpoints that RAISE these live in other groups; here we drive each error
+# class through the registered DomainError handler to lock the contract.
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize(
+    "error_name,status,error,code",
+    [
+        ("SpecValidationError", 400, "VALIDATION_ERROR", "SPEC_VALIDATION_ERROR"),
+        ("QuestionNotFoundError", 404, "NOT_FOUND", "QUESTION_NOT_FOUND"),
+        ("SpecNotConfirmableError", 409, "STATE_ERROR", "SPEC_NOT_CONFIRMABLE"),
+        ("LLMProviderError", 502, "UPSTREAM_ERROR", "LLM_PROVIDER_ERROR"),
+    ],
+)
+def test_phase3_error_codes_map_to_unified_envelope_no_side_effect(
+    monkeypatch, repo, error_name, status, error, code
+):
+    import app.errors as errors_module
+    import app.routes as routes_module
+    from app.main import app
+    from starlette.testclient import TestClient
+
+    exc_cls = getattr(errors_module, error_name)
+
+    def _raise(*_args, **_kwargs):
+        raise exc_cls("boom")
+
+    monkeypatch.setattr(routes_module, "create_project", _raise)
+    client = TestClient(app)
+    resp = client.post("/api/projects", json={})
+
+    assert resp.status_code == status, resp.text
+    data = resp.json()
+    # Unified envelope only — never FastAPI's default `detail` array or a 400 fallback.
+    assert set(data) >= {"error", "code", "details"}
+    assert "detail" not in data
+    assert data["error"] == error
+    assert data["code"] == code
+    assert isinstance(data["details"], dict)
+    # No persistent side effect on a failed request.
+    assert _project_count(repo) == 0
+
+
+def test_upstream_error_subclasses_domain_error_and_registers_502():
+    # Guards the two invariants in task 5.1a: UpstreamError must subclass
+    # DomainError (else it skips handle_domain_error) and UPSTREAM_ERROR must be
+    # registered (else _STATUS_BY_ERROR.get(..., 400) silently downgrades to 400).
+    from app.errors import DomainError, LLMProviderError, UpstreamError
+    from app.main import _STATUS_BY_ERROR
+
+    assert issubclass(UpstreamError, DomainError)
+    assert issubclass(LLMProviderError, UpstreamError)
+    assert LLMProviderError.error == "UPSTREAM_ERROR"
+    assert _STATUS_BY_ERROR["UPSTREAM_ERROR"] == 502
+
+
 def test_backend_known_states_match_shared_schema_exact_set():
     # spec 3.4: backend recognises exactly the 12 shared-schema WORKFLOW_STATES.
     expected = {

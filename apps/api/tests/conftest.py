@@ -16,6 +16,18 @@ from app.main import app
 from app.repository import InMemoryRepository
 
 
+@pytest.fixture(autouse=True)
+def _hermetic_llm(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the suite offline no matter what a developer's local `.env` holds:
+    force the mock provider and strip any OpenRouter creds from the environment.
+    `load_env()` uses `override=False`, so this pre-set `LLM_PROVIDER` always wins."""
+
+    monkeypatch.setenv("LLM_PROVIDER", "mock")
+    for var in ("OPENROUTER_API_KEY", "OPENROUTER_MODEL", "OPENROUTER_BASE_URL", "OPENROUTER_TIMEOUT"):
+        monkeypatch.delenv(var, raising=False)
+    routes._llm_provider = None  # drop any cached provider so the mock is rebuilt
+
+
 @pytest.fixture
 def repo() -> InMemoryRepository:
     """Fresh in-memory repository wired into the route singleton for one test."""

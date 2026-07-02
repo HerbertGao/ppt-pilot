@@ -15,8 +15,11 @@ from typing import Any
 from fastapi import APIRouter, Request
 
 from .errors import InvalidRequestBodyError
+from .config import load_env
+from .llm import LLMProvider, build_llm_provider
 from .projects import create_project
 from .repository import InMemoryRepository, Repository
+from .requirements import answer, confirm, discover, skip, update_profile
 from .shared_schema_constants import SharedSchemaConstants, load_shared_schema_constants
 from .workflow import execute_transition
 
@@ -25,6 +28,7 @@ router = APIRouter(prefix="/api", tags=["projects"])
 # Process-memory singletons (Phase 2 has no PostgreSQL/Redis/queue).
 _repository: Repository = InMemoryRepository()
 _constants: SharedSchemaConstants | None = None
+_llm_provider: LLMProvider | None = None
 
 
 def get_repository() -> Repository:
@@ -37,6 +41,15 @@ def get_constants() -> SharedSchemaConstants:
     if _constants is None:
         _constants = load_shared_schema_constants()
     return _constants
+
+
+def get_llm_provider() -> LLMProvider:
+    # Lazy singleton; default is the CI-safe MockLLMProvider (no network).
+    global _llm_provider
+    if _llm_provider is None:
+        load_env()  # populate os.environ from the repo-root .env (real runs)
+        _llm_provider = build_llm_provider()
+    return _llm_provider
 
 
 async def _json_object_body(request: Request) -> dict[str, Any]:
@@ -58,12 +71,48 @@ async def _json_object_body(request: Request) -> dict[str, Any]:
     return parsed
 
 
+async def _json_object_body_lenient(request: Request) -> dict[str, Any]:
+    """Like `_json_object_body` but an empty body means `{}` (all fields optional
+    on the requirement/profile endpoints). Malformed / non-object bodies still
+    reject as `INVALID_REQUEST_BODY`, preserving the body-parse precedence."""
+
+    raw = await request.body()
+    if not raw or not raw.strip():
+        return {}
+    try:
+        parsed = json.loads(raw)
+    except (json.JSONDecodeError, UnicodeDecodeError) as exc:
+        raise InvalidRequestBodyError("request body must be valid JSON") from exc
+    if not isinstance(parsed, dict):
+        raise InvalidRequestBodyError("request body must be a JSON object")
+    return parsed
+
+
 def _optional_str(body: dict[str, Any], key: str) -> str | None:
     value = body.get(key)
     if value is None:
         return None
     if not isinstance(value, str):
         raise InvalidRequestBodyError(f"{key} must be a string", field=key)
+    return value
+
+
+def _optional_int(body: dict[str, Any], key: str) -> int | None:
+    value = body.get(key)
+    if value is None:
+        return None
+    # bool is an int subclass; reject it explicitly.
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise InvalidRequestBodyError(f"{key} must be an integer", field=key)
+    return value
+
+
+def _optional_str_list(body: dict[str, Any], key: str) -> list[str] | None:
+    value = body.get(key)
+    if value is None:
+        return None
+    if not isinstance(value, list) or not all(isinstance(v, str) for v in value):
+        raise InvalidRequestBodyError(f"{key} must be an array of strings", field=key)
     return value
 
 
@@ -105,3 +154,73 @@ async def create_transition_route(project_id: str, request: Request) -> dict[str
         )
     project = execute_transition(get_repository(), get_constants(), project_id, to_state)
     return {"projectId": project.projectId, "status": project.state}
+
+
+# --------------------------------------------------------------------------- #
+# Phase 3 requirement/Spec surface (group E). Body parse precedes project
+# existence which precedes domain validation; any rejection has no side effect.
+# --------------------------------------------------------------------------- #
+
+
+@router.post("/projects/{project_id}/requirements/discover")
+async def discover_route(project_id: str, request: Request) -> dict[str, Any]:
+    body = await _json_object_body_lenient(request)
+    mode = _optional_str(body, "mode") or "fast"
+    return discover(
+        get_repository(),
+        get_constants(),
+        get_llm_provider(),
+        project_id,
+        mode=mode,
+        max_questions=_optional_int(body, "maxQuestions"),
+        scene=_optional_str(body, "scene"),
+        style_profile_id=_optional_str(body, "styleProfileId"),
+    )
+
+
+@router.post("/projects/{project_id}/requirements/questions/{question_id}/answer")
+async def answer_route(
+    project_id: str, question_id: str, request: Request
+) -> dict[str, Any]:
+    body = await _json_object_body_lenient(request)
+    return answer(
+        get_repository(),
+        get_constants(),
+        get_llm_provider(),
+        project_id,
+        question_id,
+        answer_text=_optional_str(body, "answer"),
+        selected_options=_optional_str_list(body, "selectedOptions"),
+    )
+
+
+@router.post("/projects/{project_id}/requirements/questions/{question_id}/skip")
+async def skip_route(
+    project_id: str, question_id: str, request: Request
+) -> dict[str, Any]:
+    body = await _json_object_body_lenient(request)
+    return skip(
+        get_repository(),
+        get_constants(),
+        project_id,
+        question_id,
+        reason=_optional_str(body, "reason"),
+    )
+
+
+@router.post("/projects/{project_id}/requirements/confirm")
+async def confirm_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)  # parse precedes existence/domain
+    return confirm(get_repository(), get_constants(), get_llm_provider(), project_id)
+
+
+@router.patch("/projects/{project_id}/profile")
+async def update_profile_route(project_id: str, request: Request) -> dict[str, Any]:
+    body = await _json_object_body_lenient(request)
+    return update_profile(
+        get_repository(),
+        get_constants(),
+        project_id,
+        scene=_optional_str(body, "scene"),
+        style_profile_id=_optional_str(body, "styleProfileId"),
+    )

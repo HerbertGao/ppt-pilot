@@ -15,7 +15,7 @@
         "maxQuestions": 3
       },
       "riskNotes": [],
-      "nextState": "OUTLINE_GENERATION"
+      "nextState": "REQUIREMENT_REVIEW"
     },
     "createdAt": "2026-07-01T00:00:00.000Z"
   }

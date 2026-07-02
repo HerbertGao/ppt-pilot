@@ -82,6 +82,13 @@ def execute_transition(
 
     project = repository.get_project(project_id)  # ProjectNotFoundError
     validate_transition(project.state, to_state, backend_known_states(constants))
+    rolls_back = project.state == "REQUIREMENT_REVIEW" and to_state == "REQUIREMENT_DISCOVERY"
     event = build_state_change_event(project_id, project.state, to_state, actor=actor)
     validate_state_change_event(event)  # raises before any write
-    return repository.commit_state_change(project_id, to_state, event)
+    result = repository.commit_state_change(project_id, to_state, event)
+    if rolls_back:
+        # Rolling back out of REVIEW invalidates any confirmed Spec snapshot and
+        # resets confirmedByUser (design D3): a profile change may only follow this
+        # rollback, and the stale confirmed Spec must not survive it.
+        result.spec = None
+    return result

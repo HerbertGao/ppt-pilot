@@ -33,6 +33,7 @@ _STATUS_BY_ERROR = {
     "VALIDATION_ERROR": 400,
     "STATE_ERROR": 409,
     "NOT_FOUND": 404,
+    "UPSTREAM_ERROR": 502,
 }
 
 # HTTP status -> (error class, NEUTRAL code) for framework-native HTTPException.

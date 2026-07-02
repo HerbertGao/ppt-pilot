@@ -1,0 +1,23 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_scene_style_profile_updated_invalid_001",
+    "projectId": "proj_minimal_001",
+    "type": "SCENE_STYLE_PROFILE_UPDATED",
+    "actor": "system",
+    "payload": {
+      "previousScene": null,
+      "previousStyleProfileId": null,
+      "scene": "science",
+      "styleProfileId": "style_education_default"
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "payload.scene"
+      }
+    ]
+  }
+}

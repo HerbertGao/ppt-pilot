@@ -26,6 +26,14 @@ class StoredProject:
     styleProfileId: str
     state: str
     events: list[dict[str, Any]] = field(default_factory=list)
+    # Transient Phase 3 requirement-discovery session (app.agents.DiscoverySession).
+    # Typed Any to avoid a layering import of the agent runtime into this low-level
+    # store; it never enters shared-schema (design D4).
+    discovery: Any = None
+    # Confirmed PresentationSpec snapshot (validated dict incl. confirmedByUser).
+    # None until confirm; nulled by the REQUIREMENT_REVIEW->REQUIREMENT_DISCOVERY
+    # rollback so a stale confirmed spec never survives a profile change.
+    spec: Any = None
 
 
 class Repository(ABC):
