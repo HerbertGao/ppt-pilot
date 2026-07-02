@@ -88,7 +88,8 @@ async def handle_http_exception(
 async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     # Catch-all so an unexpected error still honors the unified {error,code,details}
     # contract instead of leaking Starlette's plain-text 500.
-    logger.exception("unhandled error on %s %s", request.method, request.url.path)
+    # %r so a CR/LF in the request path cannot forge log lines (CWE-117).
+    logger.exception("unhandled error on %r %r", request.method, request.url.path)
     return _error_response(
         500, "INTERNAL_ERROR", "INTERNAL_ERROR", "internal server error"
     )
