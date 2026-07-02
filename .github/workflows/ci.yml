@@ -298,7 +298,7 @@ jobs:
           PYTHONPATH=apps/api python3 - <<'PY'
           from app.main import app, health_check
 
-          paths = {route.path for route in app.routes}
+          paths = {getattr(route, "path", None) for route in app.routes}
           assert "/health" in paths, "FastAPI app must expose /health"
           result = health_check()
           assert result["status"] == "ok", result
