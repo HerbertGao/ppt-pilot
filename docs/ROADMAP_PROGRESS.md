@@ -7,7 +7,9 @@
 - 已完成：`Phase 0`（文档与架构理解）
 - 已完成并归档：`Phase 1`（工程底座、monorepo、shared schema），归档件位于 `openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema`
 - 已完成并归档：`Phase 2`（后端 API 与工作流状态机），归档件位于 `openspec/changes/archive/2026-07-02-phase-2-api-skeleton-and-workflow-state`；已合并 PR #9
-- 当前后续：启动 `Phase 3`（需求澄清与 Spec Builder），先创建 `phase-3-requirement-discovery-and-spec-builder` OpenSpec 提案
+- 进行中（实现完成，待归档）：`Phase 3`（需求澄清与 Spec Builder），提案 `phase-3-requirement-discovery-and-spec-builder`；需求发现/作答/跳过/确认与 `PATCH .../profile` 接口已实现，确认停留在 `REQUIREMENT_REVIEW`（不推进状态），尚未归档
+- AI 首次进入：`Phase 3`（文本 LLM，走 OpenRouter，藏在 `LLMProvider` 接口后）；Phase 3–8 只需文本 LLM
+- 文生图（`ImageProvider`，第三方 API）推迟到 `Phase 9`，与 `LLMProvider` 并列，选型到 Phase 9 再定。详见 `docs/ARCHITECTURE.md` §5 Model Providers
 - 已废弃：旧 `phase-1-requirement-discovery-mvp` 提案
 - 原因：需求澄清依赖共享 schema、API 状态机、事件模型与基础工程结构，不应作为技术实现第一期
 
@@ -18,7 +20,7 @@
 | Phase 0 | 文档与架构 | 建立产品、架构、数据模型、工作流与 OpenSpec 语境 | 已完成 | - | 文档可指导 AI agent 与人工协作 |
 | Phase 1 | 工程底座与共享契约 | 建立 monorepo、前后端空壳、`packages/shared-schema`、schema 校验、Dependabot 与分层 CI | 已完成并归档 | `phase-1-foundation-monorepo-and-shared-schema` | 仓库可安装/启动；共享 schema 可生成类型并校验样例；文档 PR 不触发全量 CI |
 | Phase 2 | 后端 API 与工作流状态机 | FastAPI、项目生命周期、状态流转、事件写入、错误约定 | 已完成并归档 | `phase-2-api-skeleton-and-workflow-state` | 创建项目与状态推进可运行；非法状态不写持久状态 |
-| Phase 3 | 需求澄清与 Spec Builder | Requirement Discovery Agent、问题策略、跳过风险、Spec 确认 | 未启动 | `phase-3-requirement-discovery-and-spec-builder` | 模糊输入可生成可确认的 `PresentationSpec` |
+| Phase 3 | 需求澄清与 Spec Builder | Requirement Discovery Agent、问题策略、跳过风险、Spec 确认 | 进行中（实现完成，待归档） | `phase-3-requirement-discovery-and-spec-builder` | 模糊输入可生成可确认的 `PresentationSpec` |
 | Phase 4 | 前端工作流壳 | Next.js 立项、需求澄清、Spec review、状态展示 | 未启动 | `phase-4-frontend-workflow-shell` | 用户可在 Web 中完成创建、问答与 Spec 确认 |
 | Phase 5 | 大纲与 Slide Plan | Outline Agent、Slide Planner Agent、可编辑结构 | 未启动 | `phase-5-outline-and-slide-planning` | 确认 Spec 后可生成并编辑 outline/slide plan |
 | Phase 6 | HTML 预览与 Slide Model | 结构化 slide JSON、主题 token、HTML preview renderer | 未启动 | `phase-6-html-preview-and-slide-model` | 同一结构化模型可渲染预览 |
@@ -31,8 +33,8 @@
 
 - 当前不应继续旧提案：`phase-1-requirement-discovery-mvp`
 - 已归档提案：`phase-1-foundation-monorepo-and-shared-schema`、`phase-2-api-skeleton-and-workflow-state`
-- 无进行中的 change
-- 下一提案：`phase-3-requirement-discovery-and-spec-builder`
+- 进行中的 change：`phase-3-requirement-discovery-and-spec-builder`（实现完成，待归档）
+- 下一提案：`phase-4-frontend-workflow-shell`
 - 旧提案中的场景、风格、fast/thorough、跳过问题等内容保留为产品方向，但实现归属调整到 Phase 3
 
 ## 4. Phase 1 推荐 TODO

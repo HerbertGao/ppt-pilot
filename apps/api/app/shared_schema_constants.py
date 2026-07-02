@@ -49,6 +49,9 @@ process.stdout.write(
     EVENT_TYPES: sharedSchema.EVENT_TYPES,
     profileSceneMap,
     defaultProfileIdByScene: sharedSchema.DEFAULT_STYLE_PROFILE_ID_BY_SCENE,
+    defaultFastSceneThresholdByScene: sharedSchema.DEFAULT_FAST_SCENE_THRESHOLD_BY_SCENE,
+    thoroughMinSceneThreshold: sharedSchema.THOROUGH_MIN_SCENE_THRESHOLD,
+    defaultMaxQuestionsByMode: sharedSchema.DEFAULT_MAX_QUESTIONS_BY_MODE,
   }),
 );
 """
@@ -64,6 +67,12 @@ class SharedSchemaConstants:
     profile_scene_map: dict[str, str]
     # scene -> default profile id, from DEFAULT_STYLE_PROFILE_ID_BY_SCENE
     default_profile_id_by_scene: dict[str, str]
+    # scene -> fast-mode confidence threshold, from DEFAULT_FAST_SCENE_THRESHOLD_BY_SCENE
+    default_fast_scene_threshold_by_scene: dict[str, float]
+    # thorough-mode minimum threshold, from THOROUGH_MIN_SCENE_THRESHOLD
+    thorough_min_scene_threshold: float
+    # mode -> max questions, from DEFAULT_MAX_QUESTIONS_BY_MODE
+    default_max_questions_by_mode: dict[str, int]
 
 
 def load_shared_schema_constants() -> SharedSchemaConstants:
@@ -117,4 +126,25 @@ def load_shared_schema_constants() -> SharedSchemaConstants:
         event_types=tuple(raw["EVENT_TYPES"]),
         profile_scene_map=dict(raw["profileSceneMap"]),
         default_profile_id_by_scene=dict(raw["defaultProfileIdByScene"]),
+        default_fast_scene_threshold_by_scene=dict(raw["defaultFastSceneThresholdByScene"]),
+        thorough_min_scene_threshold=float(raw["thoroughMinSceneThreshold"]),
+        default_max_questions_by_mode=dict(raw["defaultMaxQuestionsByMode"]),
     )
+
+
+def _selfcheck() -> None:
+    """Smoke the bridge surfaces the question-policy constants from profiles.ts
+    (mirrors projects.py's default_profile_id_by_scene assertion). Needs a built
+    shared-schema dist: `pnpm --filter @ppt-pilot/shared-schema build`.
+    """
+
+    constants = load_shared_schema_constants()
+    assert constants.default_profile_id_by_scene["default"] == "style_default"
+    assert constants.default_fast_scene_threshold_by_scene["education"] == 0.82
+    assert constants.thorough_min_scene_threshold == 0.85
+    assert constants.default_max_questions_by_mode["fast"] == 3
+    print("shared_schema_constants bridge selfcheck OK")
+
+
+if __name__ == "__main__":
+    _selfcheck()

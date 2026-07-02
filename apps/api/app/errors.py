@@ -37,6 +37,12 @@ class NotFoundError(DomainError):
     error = "NOT_FOUND"
 
 
+class UpstreamError(DomainError):
+    # Subclasses DomainError so it flows through handle_domain_error; the handler
+    # maps error -> HTTP via _STATUS_BY_ERROR, where UPSTREAM_ERROR is 502.
+    error = "UPSTREAM_ERROR"
+
+
 class InvalidSceneError(ValidationError):
     code = "INVALID_SCENE"
     field = "scene"
@@ -64,3 +70,20 @@ class InvalidStateTransitionError(StateError):
 class ProjectNotFoundError(NotFoundError):
     code = "PROJECT_NOT_FOUND"
     field = "projectId"
+
+
+class SpecValidationError(ValidationError):
+    code = "SPEC_VALIDATION_ERROR"
+
+
+class QuestionNotFoundError(NotFoundError):
+    code = "QUESTION_NOT_FOUND"
+    field = "questionId"
+
+
+class SpecNotConfirmableError(StateError):
+    code = "SPEC_NOT_CONFIRMABLE"
+
+
+class LLMProviderError(UpstreamError):
+    code = "LLM_PROVIDER_ERROR"

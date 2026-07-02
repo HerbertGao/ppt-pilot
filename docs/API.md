@@ -42,9 +42,9 @@ Future options:
 
 Phase 2 (implemented): `POST /api/projects`, `GET /api/projects/{projectId}`, and
 `POST /api/projects/{projectId}/transitions`. `PATCH /api/projects/{projectId}/profile`
-remains a roadmap draft and is **not** implemented in Phase 2.
+is implemented in **Phase 3** (see the Update Project Scene/Profile section below).
 
-All Phase 2 business errors follow the unified error convention in §2.4.
+All Phase 2/3 business errors follow the unified error convention in §2.4.
 
 ### Create Project (Phase 2 implemented)
 
@@ -130,7 +130,7 @@ Notes:
 - 错误码：未知状态字符串 → `INVALID_WORKFLOW_STATE`；已知状态但非法邻接边 → `INVALID_STATE_TRANSITION`；项目不存在 → `PROJECT_NOT_FOUND`；缺失/畸形请求体或缺 `to` → `INVALID_REQUEST_BODY`（见 §2.4）。
 - 任一失败路径都不改状态、不追加事件。
 
-### Update Project Scene/Profile (Roadmap Draft — not Phase 2)
+### Update Project Scene/Profile (Phase 3 implemented)
 
 ```http
 PATCH /api/projects/{projectId}/profile
@@ -147,10 +147,10 @@ Request:
 
 Notes:
 
-- Allowed only before Presentation Spec confirmation. After confirmation, the user must return to requirement review/discovery before changing scene/style.
 - `scene` must be one of `education`, `corporate`, or `default`.
 - `styleProfileId` must exist and belong to the selected `scene`; omitted value falls back to the scene default profile.
 - Successful updates record `SCENE_STYLE_PROFILE_UPDATED`.
+- Allowed freely before Presentation Spec confirmation. **After confirmation**, changing scene/style is rejected with `SPEC_NOT_CONFIRMABLE`（见 §2.4）until the project is first rolled back `REQUIREMENT_REVIEW → REQUIREMENT_DISCOVERY`（复用工作流状态机既有回退边）。That rollback resets `confirmedByUser=false` and voids the confirmed `PresentationSpec` snapshot, so the Spec must be re-confirmed after the profile change.
 - 当 `scene` 或 `styleProfileId` 校验失败时返回 400，并且不得写入任何持久状态（包括更新事件）。
 
 无效场景/无效风格归属时的错误示例：
@@ -180,17 +180,20 @@ Notes:
 }
 ```
 
-### 2.4 Unified Error Convention (Phase 2)
+### 2.4 Unified Error Convention (Phase 2, extended in Phase 3)
 
 所有业务 API 的错误响应使用统一结构 `{error, code, details}`：`error` 为错误分类，`code` 为稳定的机器可读错误码，`details` 含 `field` / `message` 等定位信息。
 
 错误分类 → 错误码映射（稳定且明确）：
 
 ```text
-VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY   (HTTP 400)
-STATE_ERROR      -> INVALID_STATE_TRANSITION                                                                  (HTTP 409)
-NOT_FOUND        -> PROJECT_NOT_FOUND                                                                          (HTTP 404)
+VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY | SPEC_VALIDATION_ERROR   (HTTP 400)
+STATE_ERROR      -> INVALID_STATE_TRANSITION | SPEC_NOT_CONFIRMABLE                                                                   (HTTP 409)
+NOT_FOUND        -> PROJECT_NOT_FOUND | QUESTION_NOT_FOUND                                                                            (HTTP 404)
+UPSTREAM_ERROR   -> LLM_PROVIDER_ERROR                                                                                                (HTTP 502)
 ```
+
+Phase 3 新增码：`SPEC_VALIDATION_ERROR`（Spec 未过 schema 校验）、`QUESTION_NOT_FOUND`（未知 `questionId`）、`SPEC_NOT_CONFIRMABLE`（确认前置状态不满足，或确认后未回退即改 profile）、`LLM_PROVIDER_ERROR`（`LLMProvider` 上游/超时失败，映射为 HTTP 502，不泄漏框架默认体）。
 
 框架原生错误（畸形 JSON / 字段类型错误触发的 `RequestValidationError`，以及 `HTTPException`）经异常处理器映射为同一结构（`error=VALIDATION_ERROR`、`code=INVALID_REQUEST_BODY`），不返回 FastAPI 默认的 `detail` 数组。
 
@@ -213,7 +216,9 @@ INVALID_REQUEST_BODY  >  PROJECT_NOT_FOUND  >  目标状态校验 (INVALID_WORKF
 }
 ```
 
-## 3. Requirement APIs (Roadmap Draft)
+## 3. Requirement APIs (Phase 3 implemented)
+
+需求发现由 `LLMProvider` 驱动（CI 与本地默认走确定性 mock）。所有接口沿用 §2.4 统一错误约定与错误优先级；被拒绝的请求不改状态、不追加事件。新增错误码见 §2.4（`SPEC_VALIDATION_ERROR`、`QUESTION_NOT_FOUND`、`SPEC_NOT_CONFIRMABLE`、`LLM_PROVIDER_ERROR`）。
 
 ### Start Requirement Discovery
 
@@ -286,6 +291,34 @@ Response:
 }
 ```
 
+Notes:
+
+- 作答仅更新置信度，**不追加事件**（无对应事件类型；仅当因此重新提问才会再触发 `REQUIREMENT_QUESTION_ASKED`）。
+- 未知 `questionId` 返回 `QUESTION_NOT_FOUND`（见 §2.4），不更新置信度、不追加事件。
+
+### Skip Question
+
+```http
+POST /api/projects/{projectId}/requirements/questions/{questionId}/skip
+```
+
+Response:
+
+```json
+{
+  "confidence": 0.72,
+  "threshold": 0.82,
+  "thresholdReached": false,
+  "skippedQuestionIds": ["q_001"],
+  "nextState": "REQUIREMENT_DISCOVERY"
+}
+```
+
+Notes:
+
+- 跳过把该问题记入 `riskNotes` 并追加 `REQUIREMENT_QUESTION_SKIPPED`。
+- 未知 `questionId` 返回 `QUESTION_NOT_FOUND`（见 §2.4），无持久副作用。
+
 ### Confirm Spec
 
 ```http
@@ -315,14 +348,16 @@ Response:
     "maxQuestions": 3
   },
   "riskNotes": [],
-  "nextState": "OUTLINE_GENERATION"
+  "nextState": "REQUIREMENT_REVIEW"
 }
 ```
 
 Notes:
 
-- Confirmation snapshots the effective `scene`, `styleProfileId`, and `questionPolicy` into `PresentationSpec`.
-- Successful confirmation records `PRESENTATION_SPEC_CONFIRMED`.
+- Confirmation snapshots the effective `scene`, `styleProfileId`, and `questionPolicy` into `PresentationSpec`, sets `confirmedByUser=true`, and records `PRESENTATION_SPEC_CONFIRMED`（payload `nextState=REQUIREMENT_REVIEW`）。
+- **确认不推进工作流状态**（D3）：项目停留在 `REQUIREMENT_REVIEW`，不进入 `OUTLINE_GENERATION`（outline 生成属 Phase 5，前向边由归属阶段加入）。
+- confirm 仅在 `state == REQUIREMENT_REVIEW` 时允许，否则返回 `SPEC_NOT_CONFIRMABLE`（见 §2.4）。
+- Spec 未通过 schema 校验时返回 `SPEC_VALIDATION_ERROR`（见 §2.4），不置位确认、不追加事件。
 
 ## 4. Outline APIs (Roadmap Draft)
 

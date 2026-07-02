@@ -25,6 +25,36 @@ class EventValidationError(RuntimeError):
     """
 
 
+def build_event(
+    project_id: str,
+    event_type: str,
+    payload: dict[str, Any],
+    *,
+    actor: str,
+) -> dict[str, Any]:
+    """Build any shared-schema `Event`. Action initiator lives ONLY in `actor`."""
+
+    return {
+        "id": uuid.uuid4().hex,
+        "projectId": project_id,
+        "type": event_type,
+        "actor": actor,
+        "payload": payload,
+        "createdAt": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def validate_event(event: dict[str, Any]) -> None:
+    """Validate any `Event` via shared-schema `validateEvent`.
+
+    Raises `EventValidationError` on failure; the caller must not append.
+    """
+
+    result = validate_shared_schema_entity("Event", event)
+    if not result.ok:
+        raise EventValidationError("; ".join(result.errors) or "event rejected by shared-schema")
+
+
 def build_state_change_event(
     project_id: str,
     previous_state: str,

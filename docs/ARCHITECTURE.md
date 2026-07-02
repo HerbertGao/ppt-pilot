@@ -126,6 +126,18 @@ Each agent must have:
 - Escalation condition
 - Versioned prompt template
 
+### Model Providers
+
+Two independent provider interfaces, both swappable:
+
+- `LLMProvider` — text agents (Requirement, Gap, Question, Spec Builder, Outline, Slide Planner, Content, Layout, Review). Backed by OpenRouter first. This is the only provider needed from Phase 3 through Phase 8.
+- `ImageProvider` — text-to-image for the Image Agent. A separate third-party API (OpenRouter's image coverage is not sufficient). Introduced in Phase 9, not before.
+
+Notes:
+
+- The Image Agent has four asset modes (AI-generated, open-license stock, icons, diagrams). Only the first needs `ImageProvider`; diagrams/charts/icons go through the renderer or a stock library.
+- Before Phase 9 no text-to-image code is written. `ImageProvider` selection is deferred to Phase 9 when real quality/cost/style-consistency needs are known.
+
 ## 6. Source of Truth
 
 The source of truth is not PPTX.
