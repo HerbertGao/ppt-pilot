@@ -8,8 +8,8 @@
 - 已完成并归档：`Phase 1`（工程底座、monorepo、shared schema），归档件位于 `openspec/changes/archive/2026-07-02-phase-1-foundation-monorepo-and-shared-schema`
 - 已完成并归档：`Phase 2`（后端 API 与工作流状态机），归档件位于 `openspec/changes/archive/2026-07-02-phase-2-api-skeleton-and-workflow-state`；已合并 PR #9
 - 已完成并归档：`Phase 3`（需求澄清与 Spec Builder），归档件位于 `openspec/changes/archive/2026-07-02-phase-3-requirement-discovery-and-spec-builder`；已合并 PR #10。需求发现/作答/跳过/确认与 `PATCH .../profile` 已实现，确认停留在 `REQUIREMENT_REVIEW`（不推进状态），真实 LLM 链路已验证（OpenRouter/DeepSeek）
-- 进行中（实现完成，待归档）：`Phase 4`（前端工作流壳），提案 `phase-4-frontend-workflow-shell` 的立项、需求澄清、Spec review 页与状态壳已落地，前端工作流规则（前向转移驱动、复核页非 REVIEW 即重定向、改 profile rollback-first）与 mock `/api` 的组件/交互测试（Vitest）均已实现，待主控验收后归档
-- 当前后续：`Phase 4` 归档完成后启动 `Phase 5`（大纲与 Slide Plan）
+- 已完成并归档：`Phase 4`（前端工作流壳），归档件位于 `openspec/changes/archive/2026-07-02-phase-4-frontend-workflow-shell`；已合并 PR #12。Next.js 立项、需求澄清、Spec review 页与状态壳已落地，前端工作流规则（前向转移驱动、复核页非 REVIEW 即重定向、改 profile rollback-first）与 mock `/api` 的组件/交互测试（Vitest 40 项）均已实现
+- 当前后续：启动 `Phase 5`（大纲与 Slide Plan）
 - AI 首次进入：`Phase 3`（文本 LLM，走 OpenRouter，藏在 `LLMProvider` 接口后）；Phase 3–8 只需文本 LLM
 - 文生图（`ImageProvider`，第三方 API）推迟到 `Phase 9`，与 `LLMProvider` 并列，选型到 Phase 9 再定。详见 `docs/ARCHITECTURE.md` §5 Model Providers
 - 已废弃：旧 `phase-1-requirement-discovery-mvp` 提案
@@ -23,7 +23,7 @@
 | Phase 1 | 工程底座与共享契约 | 建立 monorepo、前后端空壳、`packages/shared-schema`、schema 校验、Dependabot 与分层 CI | 已完成并归档 | `phase-1-foundation-monorepo-and-shared-schema` | 仓库可安装/启动；共享 schema 可生成类型并校验样例；文档 PR 不触发全量 CI |
 | Phase 2 | 后端 API 与工作流状态机 | FastAPI、项目生命周期、状态流转、事件写入、错误约定 | 已完成并归档 | `phase-2-api-skeleton-and-workflow-state` | 创建项目与状态推进可运行；非法状态不写持久状态 |
 | Phase 3 | 需求澄清与 Spec Builder | Requirement Discovery Agent、问题策略、跳过风险、Spec 确认 | 已完成并归档 | `phase-3-requirement-discovery-and-spec-builder` | 模糊输入可生成可确认的 `PresentationSpec` |
-| Phase 4 | 前端工作流壳 | Next.js 立项、需求澄清、Spec review、状态展示 | 进行中（实现完成，待归档） | `phase-4-frontend-workflow-shell` | 用户可在 Web 中完成创建、问答与 Spec 确认 |
+| Phase 4 | 前端工作流壳 | Next.js 立项、需求澄清、Spec review、状态展示 | 已完成并归档 | `phase-4-frontend-workflow-shell` | 用户可在 Web 中完成创建、问答与 Spec 确认 |
 | Phase 5 | 大纲与 Slide Plan | Outline Agent、Slide Planner Agent、可编辑结构 | 未启动 | `phase-5-outline-and-slide-planning` | 确认 Spec 后可生成并编辑 outline/slide plan |
 | Phase 6 | HTML 预览与 Slide Model | 结构化 slide JSON、主题 token、HTML preview renderer | 未启动 | `phase-6-html-preview-and-slide-model` | 同一结构化模型可渲染预览 |
 | Phase 7 | PPTX 导出 MVP | PPTX export、下载、HTML/PPTX 一致性检查 | 未启动 | `phase-7-pptx-export-mvp` | 可从结构化数据导出 PPTX |
@@ -34,8 +34,8 @@
 ## 3. 当前 OpenSpec 状态
 
 - 当前不应继续旧提案：`phase-1-requirement-discovery-mvp`
-- 已归档提案：`phase-1-foundation-monorepo-and-shared-schema`、`phase-2-api-skeleton-and-workflow-state`、`phase-3-requirement-discovery-and-spec-builder`
-- 进行中的 change：`phase-4-frontend-workflow-shell`（实现完成，待主控验收后归档）
+- 已归档提案：`phase-1-foundation-monorepo-and-shared-schema`、`phase-2-api-skeleton-and-workflow-state`、`phase-3-requirement-discovery-and-spec-builder`、`phase-4-frontend-workflow-shell`
+- 进行中的 change：无（下一步启动 `Phase 5`）
 - 下一提案：`phase-5-outline-and-slide-planning`
 - 旧提案中的场景、风格、fast/thorough、跳过问题等内容保留为产品方向，但实现归属调整到 Phase 3
 

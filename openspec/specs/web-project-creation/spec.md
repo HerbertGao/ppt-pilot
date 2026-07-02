@@ -1,0 +1,33 @@
+# web-project-creation 规范
+
+## 目的
+待定 - 由归档变更 phase-4-frontend-workflow-shell 创建。归档后请更新目的。
+## 需求
+### 需求:立项页创建项目
+
+Web 应用必须提供立项页，让用户输入初始请求文本并选择 `scene` 与（可选）`styleProfileId`，通过 `POST /api/projects` 创建项目。界面不得只提供一个空白 prompt 框（见 `docs/UI.md` §7）：场景/风格选择必须在生成前可见。创建成功后必须带着返回的 `projectId` 进入需求澄清流程。
+
+#### 场景:成功创建并进入流程
+
+- **当** 用户填写初始请求、选择 `scene=education`，提交立项
+- **那么** 界面必须调用 `POST /api/projects` 成功后携带 `projectId` 进入需求澄清页
+
+#### 场景:创建时提供场景/风格选择
+
+- **当** 用户打开立项页
+- **那么** 界面必须提供 scene 与 styleProfile 选择控件，而非仅一个空白输入框
+
+### 需求:立项校验错误呈现
+
+立项提交若因 `scene`/`styleProfileId` 归属校验失败被后端拒绝，界面必须将错误定位到对应表单字段并保持用户输入，不得清空表单或崩溃。
+
+#### 场景:非法风格归属
+
+- **当** 提交的 `styleProfileId` 不属于所选 `scene`，后端返回 `STYLE_PROFILE_MISMATCH`
+- **那么** 界面必须在风格字段处显示错误、保留已填内容，不进入下一步
+
+#### 场景:非法场景
+
+- **当** 提交的 `scene` 非法，后端返回 `INVALID_SCENE`
+- **那么** 界面必须在场景字段处显示错误，不创建项目
+
