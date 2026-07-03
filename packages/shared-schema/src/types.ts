@@ -169,3 +169,14 @@ export interface Event {
   payload: JsonObject;
   createdAt: string;
 }
+
+export interface ExportArtifact {
+  id: string;
+  projectId: string;
+  format: "pptx";
+  bytesBase64: string;
+  byteSize: number;
+  sourcePresentationId: string;
+  createdBy: ActorType;
+  createdAt: string;
+}

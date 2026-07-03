@@ -179,8 +179,38 @@ lockable:
   materialized visual elements render as typed placeholder boxes and request no external
   assets.
 
-This is the same structured model Phase 7 PPTX export will read — the renderer proves a
+This is the same structured model Phase 7 PPTX export reads — the renderer proves a
 confirmed plan materializes into a previewable, export-shareable model.
+
+### 7.2 PPTX export service (Phase 7)
+
+The PPTX exporter lands in the backend as `apps/api/app/export.py` (not
+`packages/exporter`, which stays an empty placeholder for a later TS/pptxgenjs path):
+`python-pptx` is mature, pure-Python (lxml), hermetic, and returns `bytes` in-process,
+so no Node subprocess is needed to produce a binary. It is **deterministic, LLM-free,
+network-free** and consumes the **same persisted `Presentation`** the renderer does:
+
+- `POST /projects/{id}/export` reads the materialized `project.presentation`, maps each
+  `Slide` to one pptx slide (built on the blank layout so no template placeholder shapes
+  pollute the shape count) and each `Element` to one shape. Geometry scales from the
+  export canvas convention `1280×720 px` to the **exact 16:9 EMU** slide
+  (`12192000×6858000`, never the imprecise `Inches(13.333)`), integer `Emu`, `zIndex`
+  ascending add order, finite-guarded, off-canvas allowed to overflow. `text` → textbox
+  (`str(content.text or "")`); **every other type (one `else`) → a labeled placeholder
+  rectangle** (full 8-type coverage, no real charts/images this phase); `theme` → colors
+  (`lstrip("#")` + try, deterministic fallback, never raises).
+- **Determinism is expressed as structural invariants, not byte-level reproducibility**
+  (pptx is a zip binary): `core_properties` are pinned to deterministic sentinels, and
+  the produced deck is asserted by reopening it (slide count == `slides`, shape count ==
+  elements, text content, geometry scaling).
+- The bytes live in the in-memory repository as a base64 `ExportArtifact`;
+  `GET /projects/{id}/export/{artifactId}` streams them with the PPTX MIME and
+  `Content-Length == byteSize`, while `GET /projects/{id}/exports` lists **metadata only**
+  (never the unbounded `bytesBase64`). No disk, no object storage this phase.
+- The export action **does not advance the workflow state** (like every action endpoint):
+  it stays in `EXPORT_READY` and appends a single `PRESENTATION_EXPORTED` event; reaching
+  `EXPORTED` is a separate explicit `/transitions` step. Assembled artifact and event are
+  validated **before** any persistent write, so a rejection persists nothing.
 
 ## 8. Future Enterprise Layer
 

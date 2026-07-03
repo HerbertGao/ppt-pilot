@@ -126,7 +126,7 @@ The deck is ready for export.
 
 An export artifact has been generated.
 
-## 2.1 Implemented Transition Edges (Phase 2 + Phase 5)
+## 2.1 Implemented Transition Edges (Phase 2 + Phase 5 + Phase 7)
 
 The backend `TRANSITION_EDGES` are LLM-free and structural: `validate_transition`
 only checks structural adjacency (no Agent/LLM call, no content guard on forward
@@ -141,6 +141,8 @@ forward:
   OUTLINE_REVIEW       -> SLIDE_PLANNING           (Phase 5)
   SLIDE_PLANNING       -> SLIDE_PLAN_REVIEW        (Phase 5)
   SLIDE_PLAN_REVIEW    -> SLIDE_GENERATION         (Phase 6)
+  SLIDE_GENERATION     -> EXPORT_READY             (Phase 7)
+  EXPORT_READY         -> EXPORTED                 (Phase 7)
 
 rollback:
   REQUIREMENT_REVIEW   -> REQUIREMENT_DISCOVERY    (Phase 2)
@@ -149,10 +151,13 @@ rollback:
   SLIDE_PLANNING       -> OUTLINE_REVIEW           (Phase 5)
   SLIDE_PLAN_REVIEW    -> SLIDE_PLANNING           (Phase 5)
   SLIDE_GENERATION     -> SLIDE_PLAN_REVIEW        (Phase 6)
+  EXPORT_READY         -> SLIDE_GENERATION         (Phase 7)
+  EXPORTED             -> EXPORT_READY             (Phase 7)
 ```
 
-Edges past `SLIDE_GENERATION` (into `EDITING` / `REVIEW` / `EXPORT_READY` /
-`EXPORTED`) are left to Phase 7+.
+`EDITING` / `REVIEW` still have **no** edges (Phase 8): Phase 7's forward path jumps
+`SLIDE_GENERATION -> EXPORT_READY -> EXPORTED`, skipping them until that content logic
+lands.
 
 Because forward edges have no content guard, a "transition-only" path can reach
 `OUTLINE_GENERATION` / `OUTLINE_REVIEW` / `SLIDE_PLANNING` / `SLIDE_PLAN_REVIEW` /
@@ -172,7 +177,14 @@ OUTLINE_REVIEW     -> OUTLINE_GENERATION : if outline exists, confirmedByUser=fa
 SLIDE_PLANNING     -> OUTLINE_REVIEW     : clear slidePlans, slidePlansConfirmed=false
 SLIDE_PLAN_REVIEW  -> SLIDE_PLANNING     : keep slidePlans (regenerate overwrites), slidePlansConfirmed=false
 SLIDE_GENERATION   -> SLIDE_PLAN_REVIEW   : clear presentation (None-safe); keep slidePlans + slidePlansConfirmed (plans not voided)
+EXPORT_READY       -> SLIDE_GENERATION    : pure state rollback — keep presentation AND exports (non-destructive)
+EXPORTED           -> EXPORT_READY        : pure state rollback — keep presentation AND exports (non-destructive)
 ```
+
+The two export-stage rollbacks are **non-destructive**: they roll back state only and
+**keep** both `project.presentation` and the append-only `project.exports`. An
+`ExportArtifact` embeds its own bytes and is a historical deliverable, so a rollback
+never deletes an already-generated, still-downloadable file.
 
 The `SLIDE_GENERATION -> SLIDE_PLAN_REVIEW` rollback clears `project.presentation`
 None-safe so re-materialization starts from a fresh model. The confirmed plans are
@@ -181,9 +193,11 @@ a confirmed-plan state), unlike the deeper rollbacks that reset
 `slidePlansConfirmed`.
 
 Each successful transition appends one `WORKFLOW_STATE_CHANGED` event. Outline /
-slide-plan action endpoints (generate / update / confirm) **do not advance the
-workflow state** — forward transitions are driven explicitly via
-`POST /projects/{id}/transitions`.
+slide-plan / materialize / **export** action endpoints **do not advance the workflow
+state** — forward transitions are driven explicitly via
+`POST /projects/{id}/transitions`. In particular, `POST /projects/{id}/export` stays in
+`EXPORT_READY` and appends only a `PRESENTATION_EXPORTED` event; reaching `EXPORTED` is a
+separate, decoupled `EXPORT_READY -> EXPORTED` transition.
 
 ## 3. Locking Rules
 

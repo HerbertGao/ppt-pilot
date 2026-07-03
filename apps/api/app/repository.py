@@ -45,6 +45,10 @@ class StoredProject:
     # dict (matching `outline`/`spec`). None until materialize; nulled by the
     # SLIDE_GENERATION->SLIDE_PLAN_REVIEW rollback so a stale model never survives.
     presentation: Any | None = None
+    # Phase 7 append-only export history: validateEntity("ExportArtifact")-normalized
+    # dicts (each self-contained, embedding its own bytes). Every export appends;
+    # export-stage rollbacks never clear it (design D10).
+    exports: list[Any] = field(default_factory=list)
 
 
 class Repository(ABC):

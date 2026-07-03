@@ -9,13 +9,21 @@ are rejected as `INVALID_REQUEST_BODY`.
 
 from __future__ import annotations
 
+import base64
 import json
 from typing import Any
 
 from fastapi import APIRouter, Request
+from fastapi.responses import Response
 
 from .errors import InvalidRequestBodyError
 from .config import load_env
+from .export import (
+    artifact_metadata,
+    export,
+    list_exports,
+    read_export,
+)
 from .llm import LLMProvider, build_llm_provider
 from .outline import (
     confirm_outline,
@@ -323,3 +331,38 @@ async def slides_materialize_route(project_id: str, request: Request) -> dict[st
 @router.get("/projects/{project_id}/presentation")
 async def presentation_get_route(project_id: str) -> dict[str, Any]:
     return read_presentation(get_repository(), project_id)
+
+
+# --------------------------------------------------------------------------- #
+# Phase 7 PPTX-export surface. Deterministic + LLM-free; the action never advances
+# state (only /transitions does). Any rejection has no side effect (validate-
+# before-persist). The list/POST responses expose metadata only — never the
+# unbounded `bytesBase64`, which is served solely by the single-item download.
+# --------------------------------------------------------------------------- #
+
+_PPTX_MEDIA_TYPE = (
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+)
+
+
+@router.post("/projects/{project_id}/export")
+async def export_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)  # parse precedes existence/domain
+    artifact = export(get_repository(), project_id)
+    return artifact_metadata(artifact)
+
+
+@router.get("/projects/{project_id}/export/{artifact_id}")
+async def export_download_route(project_id: str, artifact_id: str) -> Response:
+    artifact = read_export(get_repository(), project_id, artifact_id)
+    raw = base64.b64decode(artifact["bytesBase64"])
+    return Response(
+        content=raw,
+        media_type=_PPTX_MEDIA_TYPE,
+        headers={"Content-Disposition": f'attachment; filename="{artifact_id}.pptx"'},
+    )
+
+
+@router.get("/projects/{project_id}/exports")
+async def exports_list_route(project_id: str) -> dict[str, Any]:
+    return {"exports": list_exports(get_repository(), project_id)}

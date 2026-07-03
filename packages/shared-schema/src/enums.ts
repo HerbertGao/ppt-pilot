@@ -68,5 +68,9 @@ export const EVENT_TYPES = [
   "SLIDE_PLAN_UPDATED",
   "SLIDE_PLAN_CONFIRMED",
   "SLIDES_MATERIALIZED",
+  "PRESENTATION_EXPORTED",
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];
+
+export const EXPORT_FORMATS = ["pptx"] as const;
+export type ExportFormat = (typeof EXPORT_FORMATS)[number];

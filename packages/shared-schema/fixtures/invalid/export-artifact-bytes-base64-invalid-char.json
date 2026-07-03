@@ -1,0 +1,21 @@
+{
+  "entity": "ExportArtifact",
+  "data": {
+    "id": "pres_minimal_001_export_1",
+    "projectId": "proj_minimal_001",
+    "format": "pptx",
+    "bytesBase64": "not base64!",
+    "byteSize": 2048,
+    "sourcePresentationId": "pres_minimal_001",
+    "createdBy": "ai",
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "bytesBase64",
+        "messageIncludes": "base64 character set"
+      }
+    ]
+  }
+}

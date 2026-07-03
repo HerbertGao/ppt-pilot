@@ -19,8 +19,8 @@ from .shared_schema_constants import SharedSchemaConstants
 # state, which is reachable but inert — action endpoints guard their own content
 # preconditions and rollbacks clear downstream None-safe (design D4/D5).
 #
-# ponytail: SLIDE_GENERATION has no forward edge yet — EDITING/REVIEW/EXPORT_READY
-# and every later edge are owned by Phase 7+, added when that content logic lands.
+# ponytail: EDITING/REVIEW edges are still owned by Phase 8 — SLIDE_GENERATION
+# jumps straight to EXPORT_READY, skipping them until that content logic lands.
 TRANSITION_EDGES: dict[str, set[str]] = {
     "NEW_PROJECT": {"REQUIREMENT_DISCOVERY"},
     "REQUIREMENT_DISCOVERY": {"REQUIREMENT_REVIEW"},
@@ -29,7 +29,9 @@ TRANSITION_EDGES: dict[str, set[str]] = {
     "OUTLINE_REVIEW": {"SLIDE_PLANNING", "OUTLINE_GENERATION"},
     "SLIDE_PLANNING": {"SLIDE_PLAN_REVIEW", "OUTLINE_REVIEW"},
     "SLIDE_PLAN_REVIEW": {"SLIDE_PLANNING", "SLIDE_GENERATION"},
-    "SLIDE_GENERATION": {"SLIDE_PLAN_REVIEW"},
+    "SLIDE_GENERATION": {"SLIDE_PLAN_REVIEW", "EXPORT_READY"},
+    "EXPORT_READY": {"SLIDE_GENERATION", "EXPORTED"},
+    "EXPORTED": {"EXPORT_READY"},
 }
 
 
@@ -130,3 +132,7 @@ def _clear_downstream_on_rollback(
         # Void the materialized presentation so re-materialize starts fresh; keep
         # the confirmed plans (rolling back the presentation does not void them).
         project.presentation = None
+    # EXPORT_READY->SLIDE_GENERATION and EXPORTED->EXPORT_READY intentionally have
+    # no branch: export-stage rollback is pure state, non-destructive. exports is an
+    # append-only history of self-contained artifacts and presentation is untouched
+    # by export, so both are retained (design D10) — the missing branch is the no-op.

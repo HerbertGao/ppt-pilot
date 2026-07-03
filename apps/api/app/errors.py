@@ -141,3 +141,23 @@ class SlidesNotMaterializableError(StateError):
 
 class SlideValidationError(ValidationError):
     code = "SLIDE_VALIDATION_ERROR"
+
+
+# --------------------------------------------------------------------------- #
+# Phase 7 PPTX-export codes (same status derivation as above; no 500 business
+# code — a real python-pptx crash falls to main.py's catch-all INTERNAL_ERROR).
+# Wrong-state export reuses InvalidStateTransitionError (409) via `_wrong_state`.
+# --------------------------------------------------------------------------- #
+
+
+class ExportNotReadyError(StateError):
+    code = "EXPORT_NOT_READY"
+
+
+class ExportArtifactNotFoundError(NotFoundError):
+    code = "EXPORT_ARTIFACT_NOT_FOUND"
+    field = "artifactId"
+
+
+class ExportValidationError(ValidationError):
+    code = "EXPORT_VALIDATION_ERROR"
