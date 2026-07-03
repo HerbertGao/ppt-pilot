@@ -78,7 +78,9 @@ def _assemble_plans(
         # pages is degenerate output: reject it (repair -> SlidePlanValidationError/400)
         # rather than silently dropping the section from the plan set.
         if not isinstance(slides, list) or not slides:
-            errors.append("each output section must produce at least one slide plan")
+            errors.append(
+                f"section {len(section_first_index) + 1}: must produce at least one slide plan"
+            )
             section_first_index.append(None)
             continue
         section_first_index.append(len(plans))

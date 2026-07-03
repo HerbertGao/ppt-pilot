@@ -248,7 +248,9 @@ def _selfcheck() -> None:
 
         # Phase 5: the outline/slide-planning forward chain is walkable and each
         # step appends exactly one event (transition-only, no generate).
-        p2 = (await call("POST", "/api/projects", b"{}"))[1]["projectId"]
+        p2_status, p2_data = await call("POST", "/api/projects", b"{}")
+        assert p2_status == 200, p2_data
+        p2 = p2_data["projectId"]
         for to in ("REQUIREMENT_DISCOVERY", "REQUIREMENT_REVIEW"):
             await call("POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode())
         chain = ["OUTLINE_GENERATION", "OUTLINE_REVIEW", "SLIDE_PLANNING", "SLIDE_PLAN_REVIEW"]

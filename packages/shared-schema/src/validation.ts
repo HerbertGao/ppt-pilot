@@ -1370,8 +1370,14 @@ function validateEventPayload(type: EventType, payload: JsonObject, path: string
       break;
     }
     case "SLIDE_PLAN_GENERATED": {
-      readRequiredNumber(payload, "slideCount", path, errors, { integer: true, min: 1 });
-      readRequiredStringArray(payload, "slideIds", path, errors);
+      const slideCount = readRequiredNumber(payload, "slideCount", path, errors, {
+        integer: true,
+        min: 1,
+      });
+      const slideIds = readRequiredStringArray(payload, "slideIds", path, errors);
+      if (slideCount !== undefined && slideIds !== undefined && slideCount !== slideIds.length) {
+        error(errors, path, `slideCount ${slideCount} must equal slideIds.length ${slideIds.length}`);
+      }
       readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
       break;
     }
