@@ -168,13 +168,27 @@ Produce the canonical Presentation Spec used by all downstream agents.
 }
 ```
 
-## 7. Outline Agent
+## 7. Outline Agent (Phase 5 implemented)
 
 ### Goal
 
-Generate presentation structure.
+From a **confirmed** `PresentationSpec`, generate presentation structure. Runs
+behind the `LLMProvider` interface (default deterministic mock in CI), with a
+`build_spec`-style bounded repair loop and inline `validateOutline` (section
+count ≤ cap, ≥ 1 section, each `estimatedSlides ≥ 1`). Repair exhausted →
+`OUTLINE_VALIDATION_ERROR` (400); provider transport failure → `LLM_PROVIDER_ERROR` (502).
+
+### Input
+
+The confirmed `PresentationSpec` (scene / style / questionPolicy / riskNotes /
+known requirements).
 
 ### Output
+
+The model emits only `{ sections: [...] }`; the runtime injects the
+runtime-owned `confirmedByUser=false` (and optional `id` / `riskNotes`) to form
+the canonical `Outline`. Sections carry **no `slideId` list** — slide identity's
+single source of truth is `SlidePlan.slideId` (see §8).
 
 ```json
 {
@@ -182,31 +196,45 @@ Generate presentation structure.
     {
       "title": "",
       "purpose": "",
-      "estimatedSlides": 3,
-      "slides": []
+      "estimatedSlides": 3
     }
   ]
 }
 ```
 
-## 8. Slide Planner Agent
+## 8. Slide Planner Agent (Phase 5 implemented)
 
 ### Goal
 
-Generate slide-level plans before content generation.
+From a **confirmed** outline (plus its confirmed Spec context), generate
+per-slide plans before content generation. Behind `LLMProvider` (default mock),
+`build_spec`-style bounded repair with inline `validateSlidePlan` + collection
+`slideId` uniqueness + total-slide cap.
+
+### Input
+
+The confirmed `Outline` and its `PresentationSpec` context.
 
 ### Output
 
+The model emits section-grouped pages; the runtime flattens them and **assigns
+`slideId` itself** (deterministic `slide-0001` in order, unique across the set —
+never trusted to the LLM, because `slideId` is the key for the single-page
+`PUT /slides/{slideId}/plan` edit). `visualIntent` is constrained to the
+`VisualIntent` enum. When a section's page count differs from its
+`estimatedSlides`, a soft `riskNote` is appended to that section's first page.
+
 ```json
 {
-  "slideId": "",
+  "slideId": "slide-0001",
   "title": "",
   "objective": "",
   "keyMessage": "",
   "contentIntent": "",
   "visualIntent": "diagram | image | chart | text | comparison | timeline",
   "layoutSuggestion": "",
-  "requiredAssets": []
+  "requiredAssets": [],
+  "riskNotes": []
 }
 ```
 

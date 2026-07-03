@@ -116,10 +116,35 @@ reviewed
 locked
 ```
 
+## 5.1 Outline (Phase 5)
+
+Canonical shared-schema entity (registered in `ENTITY_NAMES` / `EntityMap` /
+`validateEntity`, consumed by the backend via `validateEntity("Outline", ...)`).
+The confirmable, editable structure produced from a confirmed `PresentationSpec`.
+
+```json
+{
+  "id": "outline_001",
+  "sections": [
+    { "title": "", "purpose": "", "estimatedSlides": 3 }
+  ],
+  "confirmedByUser": false,
+  "riskNotes": []
+}
+```
+
+`validateOutline` constraints: `sections` has **at least 1** item, each section
+`estimatedSlides >= 1`, and section count `<=` the cap in
+`validation-constants`. `OutlineSection` holds **no `slideId` list** — slide
+identity's single source of truth is `SlidePlan.slideId`. `confirmedByUser` is
+runtime-owned (service-injected).
+
 ## 6. Slide Plan
 
 ```json
 {
+  "slideId": "slide-0001",
+  "title": "",
   "objective": "",
   "keyMessage": "",
   "contentIntent": "",
@@ -129,6 +154,20 @@ locked
   "riskNotes": []
 }
 ```
+
+`visualIntent` is constrained to the **`VisualIntent` enum** (Phase 5) — a
+semantic tightening of the previously free-`string` field, propagated through
+`validateSlide` / `validatePresentation`:
+
+```text
+VisualIntent: diagram | image | chart | text | comparison | timeline
+```
+
+`slideId` is **assigned by the service layer** (deterministic `slide-0001` in
+order, unique across the set), never by the LLM — it is the key for the
+single-page `PUT /slides/{slideId}/plan` edit. Slide-plan confirmation is tracked
+at project level (`slidePlansConfirmed`), since `SlidePlan` has no schema-level
+confirmation field.
 
 ## 6.1 Style Profile
 
@@ -303,7 +342,16 @@ REQUIREMENT_QUESTION_ASKED
 REQUIREMENT_QUESTION_SKIPPED
 PRESENTATION_SPEC_CONFIRMED
 WORKFLOW_STATE_CHANGED
+OUTLINE_GENERATED       (Phase 5)
+OUTLINE_UPDATED         (Phase 5)
+OUTLINE_CONFIRMED       (Phase 5)
+SLIDE_PLAN_GENERATED    (Phase 5)
+SLIDE_PLAN_UPDATED      (Phase 5)
+SLIDE_PLAN_CONFIRMED    (Phase 5)
 ```
+
+`validateEventPayload` is **fail-closed**: an `EVENT_TYPES` member with no
+explicit payload case fails validation (no fail-open pass-through).
 
 Minimum event payloads:
 
@@ -314,6 +362,12 @@ REQUIREMENT_QUESTION_ASKED: { questionId, prompt, kind, options, confidenceBefor
 REQUIREMENT_QUESTION_SKIPPED: { questionId, reason, confidenceAfter, riskNote }
 PRESENTATION_SPEC_CONFIRMED: { presentationSpecId, scene, styleProfileId, questionPolicy, riskNotes, nextState }
 WORKFLOW_STATE_CHANGED: { previousState, nextState }  (initiator via top-level Event.actor, not payload)
+OUTLINE_GENERATED: { sectionCount, nextState }
+OUTLINE_UPDATED: { sectionCount, nextState }
+OUTLINE_CONFIRMED: { sectionCount, nextState }
+SLIDE_PLAN_GENERATED: { slideCount, slideIds, nextState }
+SLIDE_PLAN_UPDATED: { slideId, nextState }
+SLIDE_PLAN_CONFIRMED: { slideCount, nextState }
 ```
 
 ## 13. Lock Model

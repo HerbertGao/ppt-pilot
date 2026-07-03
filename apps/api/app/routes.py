@@ -17,9 +17,21 @@ from fastapi import APIRouter, Request
 from .errors import InvalidRequestBodyError
 from .config import load_env
 from .llm import LLMProvider, build_llm_provider
+from .outline import (
+    confirm_outline,
+    generate_outline,
+    read_outline,
+    update_outline,
+)
 from .projects import create_project
 from .repository import InMemoryRepository, Repository
 from .requirements import answer, confirm, discover, skip, update_profile
+from .slide_plan import (
+    confirm_slide_plans,
+    generate_slide_plans,
+    read_slide_plans,
+    update_slide_plan,
+)
 from .shared_schema_constants import SharedSchemaConstants, load_shared_schema_constants
 from .workflow import execute_transition
 
@@ -224,3 +236,72 @@ async def update_profile_route(project_id: str, request: Request) -> dict[str, A
         scene=_optional_str(body, "scene"),
         style_profile_id=_optional_str(body, "styleProfileId"),
     )
+
+
+# --------------------------------------------------------------------------- #
+# Phase 5 outline surface. Action endpoints never advance state (explicit
+# /transitions do). Any rejection has no side effect (validate-before-persist).
+# --------------------------------------------------------------------------- #
+
+
+@router.post("/projects/{project_id}/outline/generate")
+async def outline_generate_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)  # parse precedes existence/domain
+    return generate_outline(get_repository(), get_llm_provider(), project_id)
+
+
+@router.put("/projects/{project_id}/outline")
+async def outline_update_route(project_id: str, request: Request) -> dict[str, Any]:
+    # The whole body IS the Outline object; a non-object/empty body rejects as
+    # INVALID_REQUEST_BODY before the domain layer.
+    body = await _json_object_body(request)
+    return update_outline(get_repository(), project_id, body)
+
+
+@router.post("/projects/{project_id}/outline/confirm")
+async def outline_confirm_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)
+    return confirm_outline(get_repository(), project_id)
+
+
+@router.get("/projects/{project_id}/outline")
+async def outline_get_route(project_id: str) -> dict[str, Any]:
+    return read_outline(get_repository(), project_id)
+
+
+# --------------------------------------------------------------------------- #
+# Phase 5 slide-plan surface. Action endpoints never advance state; the service
+# assigns/owns slideIds. Any rejection has no side effect (validate-before-persist).
+# --------------------------------------------------------------------------- #
+
+
+@router.post("/projects/{project_id}/slides/plans/generate")
+async def slide_plans_generate_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)  # parse precedes existence/domain
+    return generate_slide_plans(
+        get_repository(),
+        get_llm_provider(),
+        project_id,
+        max_total_slides=get_constants().max_total_slide_plans,
+    )
+
+
+@router.put("/projects/{project_id}/slides/{slide_id}/plan")
+async def slide_plan_update_route(
+    project_id: str, slide_id: str, request: Request
+) -> dict[str, Any]:
+    # The whole body IS the SlidePlan object; a non-object/empty body rejects as
+    # INVALID_REQUEST_BODY before the domain layer.
+    body = await _json_object_body(request)
+    return update_slide_plan(get_repository(), project_id, slide_id, body)
+
+
+@router.post("/projects/{project_id}/slides/plans/confirm")
+async def slide_plans_confirm_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)
+    return confirm_slide_plans(get_repository(), project_id)
+
+
+@router.get("/projects/{project_id}/slides/plans")
+async def slide_plans_get_route(project_id: str) -> dict[str, Any]:
+    return read_slide_plans(get_repository(), project_id)

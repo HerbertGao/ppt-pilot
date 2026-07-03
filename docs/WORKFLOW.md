@@ -126,6 +126,52 @@ The deck is ready for export.
 
 An export artifact has been generated.
 
+## 2.1 Implemented Transition Edges (Phase 2 + Phase 5)
+
+The backend `TRANSITION_EDGES` are LLM-free and structural: `validate_transition`
+only checks structural adjacency (no Agent/LLM call, no content guard on forward
+edges). Implemented edges:
+
+```text
+forward:
+  NEW_PROJECT          -> REQUIREMENT_DISCOVERY   (Phase 2)
+  REQUIREMENT_DISCOVERY-> REQUIREMENT_REVIEW       (Phase 2)
+  REQUIREMENT_REVIEW   -> OUTLINE_GENERATION       (Phase 5)
+  OUTLINE_GENERATION   -> OUTLINE_REVIEW           (Phase 5)
+  OUTLINE_REVIEW       -> SLIDE_PLANNING           (Phase 5)
+  SLIDE_PLANNING       -> SLIDE_PLAN_REVIEW        (Phase 5)
+
+rollback:
+  REQUIREMENT_REVIEW   -> REQUIREMENT_DISCOVERY    (Phase 2)
+  OUTLINE_GENERATION   -> REQUIREMENT_REVIEW       (Phase 5)
+  OUTLINE_REVIEW       -> OUTLINE_GENERATION       (Phase 5)
+  SLIDE_PLANNING       -> OUTLINE_REVIEW           (Phase 5)
+  SLIDE_PLAN_REVIEW    -> SLIDE_PLANNING           (Phase 5)
+```
+
+Edges past `SLIDE_PLAN_REVIEW` (into `SLIDE_GENERATION`) are left to Phase 6.
+
+Because forward edges have no content guard, a "transition-only" path can reach
+`OUTLINE_GENERATION` / `OUTLINE_REVIEW` / `SLIDE_PLANNING` / `SLIDE_PLAN_REVIEW`
+with **empty products**. Such content-free states are reachable but **inert**:
+each action endpoint guards its own content precondition (returning a stable
+`*_NOT_CONFIRMABLE` / `*_NOT_FOUND`), and every rollback clears downstream
+products **None-safe** (an already-`None` product is a no-op, never dereferenced).
+
+Rollback downstream clearing (post-commit, in-memory attribute writes):
+
+```text
+OUTLINE_GENERATION -> REQUIREMENT_REVIEW : clear outline + slidePlans, slidePlansConfirmed=false
+OUTLINE_REVIEW     -> OUTLINE_GENERATION : if outline exists, confirmedByUser=false; clear slidePlans, slidePlansConfirmed=false
+SLIDE_PLANNING     -> OUTLINE_REVIEW     : clear slidePlans, slidePlansConfirmed=false
+SLIDE_PLAN_REVIEW  -> SLIDE_PLANNING     : keep slidePlans (regenerate overwrites), slidePlansConfirmed=false
+```
+
+Each successful transition appends one `WORKFLOW_STATE_CHANGED` event. Outline /
+slide-plan action endpoints (generate / update / confirm) **do not advance the
+workflow state** — forward transitions are driven explicitly via
+`POST /projects/{id}/transitions`.
+
 ## 3. Locking Rules
 
 ### Slide lock

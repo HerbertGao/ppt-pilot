@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from .discovery import run_discovery
 from .gap import classify_gaps
+from .outline import build_outline
 from .models import (
     DO_NOT_ASK,
     GAP_CLASSES,
@@ -44,6 +45,7 @@ from .policy import (
 )
 from .prompts import DEFAULT_PROMPT_VERSION, load_prompt
 from .question import generate_questions, question_id_for
+from .slide_planner import plan_slides, slide_id_for
 from .spec_builder import build_risk_notes, build_spec
 
 __all__ = [
@@ -62,6 +64,7 @@ __all__ = [
     "Gap",
     "Question",
     "ResolvedPolicy",
+    "build_outline",
     "build_risk_notes",
     "build_spec",
     "classify_gaps",
@@ -70,7 +73,9 @@ __all__ = [
     "load_prompt",
     "open_session",
     "parse_json_object",
+    "plan_slides",
     "question_id_for",
     "resolve_question_policy",
     "run_discovery",
+    "slide_id_for",
 ]

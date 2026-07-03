@@ -3,10 +3,12 @@ import {
   ELEMENT_TYPES,
   ENTITY_NAMES,
   EVENT_TYPES,
+  MAX_OUTLINE_SECTIONS,
   QUESTION_MODES,
   SCENES,
   SLIDE_STATUSES,
   VERSION_SCOPES,
+  VISUAL_INTENTS,
   WORKFLOW_STATES,
   type ActorType,
   type ElementType,
@@ -35,6 +37,8 @@ import type {
   LockFields,
   NormalizedPresentation,
   NormalizedPresentationSpec,
+  Outline,
+  OutlineSection,
   PresentationSpec,
   QuestionPolicy,
   Slide,
@@ -43,7 +47,12 @@ import type {
 } from "./types.js";
 
 export type { EntityName } from "./validation-constants.js";
-export { ENTITY_NAMES, isEntityName } from "./validation-constants.js";
+export {
+  ENTITY_NAMES,
+  isEntityName,
+  MAX_OUTLINE_SECTIONS,
+  MAX_TOTAL_SLIDE_PLANS,
+} from "./validation-constants.js";
 
 export interface ValidationError {
   path: string;
@@ -65,6 +74,7 @@ export interface EntityMap {
   Presentation: NormalizedPresentation;
   Slide: Slide;
   SlidePlan: SlidePlan;
+  Outline: Outline;
   Element: Element;
   Asset: Asset;
   Version: Version;
@@ -78,6 +88,7 @@ export const runtimeValidationEntrypoints = {
   Presentation: "validatePresentation",
   Slide: "validateSlide",
   SlidePlan: "validateSlidePlan",
+  Outline: "validateOutline",
   Element: "validateElement",
   Asset: "validateAsset",
   Version: "validateVersion",
@@ -628,7 +639,7 @@ function validateSlidePlanAt(input: unknown, path: string): ValidationDraft<Slid
   const objective = readRequiredString(record, "objective", path, errors);
   const keyMessage = readRequiredString(record, "keyMessage", path, errors);
   const contentIntent = readRequiredString(record, "contentIntent", path, errors);
-  const visualIntent = readRequiredString(record, "visualIntent", path, errors);
+  const visualIntent = readRequiredEnum(record, "visualIntent", path, errors, VISUAL_INTENTS);
   const layoutSuggestion = readRequiredString(record, "layoutSuggestion", path, errors);
   const requiredAssets = readRequiredStringArray(record, "requiredAssets", path, errors);
   const riskNotes = readRequiredStringArray(record, "riskNotes", path, errors);
@@ -669,6 +680,83 @@ function validateSlidePlanAt(input: unknown, path: string): ValidationDraft<Slid
   }
 
   return { data: slidePlan, errors };
+}
+
+function validateOutlineSectionAt(input: unknown, path: string): ValidationDraft<OutlineSection> {
+  const errors: ValidationError[] = [];
+  const record = readRootObject(input, path, errors);
+
+  if (record === undefined) {
+    return { errors };
+  }
+
+  const title = readRequiredString(record, "title", path, errors);
+  const purpose = readRequiredString(record, "purpose", path, errors);
+  const estimatedSlides = readRequiredNumber(record, "estimatedSlides", path, errors, { integer: true, min: 1 });
+
+  if (errors.length > 0 || title === undefined || purpose === undefined || estimatedSlides === undefined) {
+    return { errors };
+  }
+
+  return { data: { title, purpose, estimatedSlides }, errors };
+}
+
+function readOutlineSections(input: unknown, path: string, errors: ValidationError[]): OutlineSection[] | undefined {
+  if (!Array.isArray(input)) {
+    error(errors, path, "must be an array");
+    return undefined;
+  }
+
+  if (input.length < 1) {
+    error(errors, path, "must contain at least one section");
+  }
+
+  if (input.length > MAX_OUTLINE_SECTIONS) {
+    error(errors, path, `must contain at most ${MAX_OUTLINE_SECTIONS} sections`);
+  }
+
+  const sections: OutlineSection[] = [];
+
+  for (let index = 0; index < input.length; index += 1) {
+    const result = validateOutlineSectionAt(input[index], arrayPath(path, index));
+    errors.push(...result.errors);
+
+    if (result.data !== undefined) {
+      sections.push(result.data);
+    }
+  }
+
+  return sections;
+}
+
+function validateOutlineAt(input: unknown, path: string): ValidationDraft<Outline> {
+  const errors: ValidationError[] = [];
+  const record = readRootObject(input, path, errors);
+
+  if (record === undefined) {
+    return { errors };
+  }
+
+  const id = readOptionalString(record, "id", path, errors);
+  const sections = readOutlineSections(record.sections, childPath(path, "sections"), errors);
+  const confirmedByUser = readRequiredBoolean(record, "confirmedByUser", path, errors);
+  const riskNotes = readOptionalStringArray(record, "riskNotes", path, errors);
+
+  if (errors.length > 0 || sections === undefined || confirmedByUser === undefined) {
+    return { errors };
+  }
+
+  const outline: Outline = { sections, confirmedByUser };
+
+  if (id !== undefined) {
+    outline.id = id;
+  }
+
+  if (riskNotes !== undefined) {
+    outline.riskNotes = riskNotes;
+  }
+
+  return { data: outline, errors };
 }
 
 function validateAssetAt(input: unknown, path: string): ValidationDraft<Asset> {
@@ -1274,6 +1362,35 @@ function validateEventPayload(type: EventType, payload: JsonObject, path: string
       readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
       break;
     }
+    case "OUTLINE_GENERATED":
+    case "OUTLINE_UPDATED":
+    case "OUTLINE_CONFIRMED": {
+      readRequiredNumber(payload, "sectionCount", path, errors, { integer: true, min: 1 });
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
+    case "SLIDE_PLAN_GENERATED": {
+      readRequiredNumber(payload, "slideCount", path, errors, { integer: true, min: 1 });
+      readRequiredStringArray(payload, "slideIds", path, errors);
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
+    case "SLIDE_PLAN_UPDATED": {
+      readRequiredString(payload, "slideId", path, errors);
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
+    case "SLIDE_PLAN_CONFIRMED": {
+      readRequiredNumber(payload, "slideCount", path, errors, { integer: true, min: 1 });
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
+    default: {
+      // fail-closed: any EVENT_TYPE without an explicit payload case must fail,
+      // so adding a type to EVENT_TYPES without a case surfaces in tests.
+      error(errors, path, `has no payload validation case for event type "${String(type)}"`);
+      break;
+    }
   }
 }
 
@@ -1294,6 +1411,11 @@ export function validateSlide(input: unknown): ValidationResult<Slide> {
 
 export function validateSlidePlan(input: unknown): ValidationResult<SlidePlan> {
   const result = validateSlidePlanAt(input, "$");
+  return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
+}
+
+export function validateOutline(input: unknown): ValidationResult<Outline> {
+  const result = validateOutlineAt(input, "$");
   return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
 }
 
@@ -1329,6 +1451,8 @@ export function validateEntity(entityName: string, input: unknown): ValidationRe
       return validateSlide(input);
     case "SlidePlan":
       return validateSlidePlan(input);
+    case "Outline":
+      return validateOutline(input);
     case "Element":
       return validateElement(input);
     case "Asset":

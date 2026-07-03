@@ -38,6 +38,9 @@ export type ElementType = (typeof ELEMENT_TYPES)[number];
 export const ACTOR_TYPES = ["user", "ai", "system"] as const;
 export type ActorType = (typeof ACTOR_TYPES)[number];
 
+export const VISUAL_INTENTS = ["diagram", "image", "chart", "text", "comparison", "timeline"] as const;
+export type VisualIntent = (typeof VISUAL_INTENTS)[number];
+
 export const REGENERATE_SCOPES = [
   "text_only",
   "image_only",
@@ -58,5 +61,11 @@ export const EVENT_TYPES = [
   "REQUIREMENT_QUESTION_SKIPPED",
   "PRESENTATION_SPEC_CONFIRMED",
   "WORKFLOW_STATE_CHANGED",
+  "OUTLINE_GENERATED",
+  "OUTLINE_UPDATED",
+  "OUTLINE_CONFIRMED",
+  "SLIDE_PLAN_GENERATED",
+  "SLIDE_PLAN_UPDATED",
+  "SLIDE_PLAN_CONFIRMED",
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];

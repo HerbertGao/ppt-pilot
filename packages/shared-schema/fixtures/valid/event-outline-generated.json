@@ -1,0 +1,14 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_outline_generated_001",
+    "projectId": "proj_minimal_001",
+    "type": "OUTLINE_GENERATED",
+    "actor": "ai",
+    "payload": {
+      "sectionCount": 3,
+      "nextState": "OUTLINE_GENERATION"
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  }
+}

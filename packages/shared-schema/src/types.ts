@@ -6,6 +6,7 @@ import type {
   Scene,
   SlideStatus,
   VersionScope,
+  VisualIntent,
 } from "./enums.js";
 
 export type JsonObject = Record<string, unknown>;
@@ -46,6 +47,19 @@ export interface NormalizedPresentationSpec extends PresentationSpec {
   styleProfileId: string;
 }
 
+export interface OutlineSection {
+  title: string;
+  purpose: string;
+  estimatedSlides: number;
+}
+
+export interface Outline {
+  id?: string;
+  sections: OutlineSection[];
+  confirmedByUser: boolean;
+  riskNotes?: string[];
+}
+
 export interface SlidePlan {
   id?: string;
   slideId?: string;
@@ -53,7 +67,7 @@ export interface SlidePlan {
   objective: string;
   keyMessage: string;
   contentIntent: string;
-  visualIntent: string;
+  visualIntent: VisualIntent;
   layoutSuggestion: string;
   requiredAssets: string[];
   riskNotes: string[];
