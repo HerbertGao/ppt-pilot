@@ -1,5 +1,13 @@
 # packages/ppt-engine
 
-Reserved for future slide model, layout model, and rendering helper code.
+Pure-function HTML preview renderer for the canonical `Slide`/`Presentation` model
+from `@ppt-pilot/shared-schema` — the same structural model PPTX export will consume.
 
-Group A does not implement HTML preview, canvas editing, lock-aware runtime behavior, or slide generation logic.
+- `renderSlide(slide, theme)` / `renderPresentation(presentation)` → deterministic HTML.
+- Context-aware escaping (text/attribute) plus a CSS property allowlist with
+  dangerous-value sanitization — a trust boundary, not cosmetic.
+- Deterministic key ordering so golden fixtures stay stable.
+- Thumbnail placeholders are deterministic inline SVG (no headless browser).
+
+Not in this phase: real content generation, layout/image agents, canvas editing,
+lock-aware runtime, and raster thumbnails.

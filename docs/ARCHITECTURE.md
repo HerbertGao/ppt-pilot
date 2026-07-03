@@ -160,6 +160,28 @@ Supported targets:
 - PDF via browser rendering or LibreOffice later
 - HTML via custom renderer or Reveal.js style renderer
 
+### 7.1 ppt-engine HTML preview renderer (Phase 6)
+
+`packages/ppt-engine` is the first consumer of the shared `Presentation`/`Slide`/`Element`
+model. It is a pure-function TypeScript renderer — no I/O, no DOM, no network, fully
+deterministic — so the same model always yields the same HTML and golden fixtures stay
+lockable:
+
+- `renderSlide(slide, theme)` and `renderPresentation(presentation)` walk the model by
+  `Element` type / geometry / `zIndex` / `style` and emit HTML fragments plus one theme
+  CSS block.
+- Trust-boundary escaping is context-aware: text goes through HTML text escaping,
+  attribute values through attribute escaping, and `ThemeTokens` / `element.style` values
+  through a **CSS property allowlist + value sanitizer** (strips `expression(...)`,
+  `url(...)`, `</style>`, etc.) — arbitrary CSS is never passed through. Object keys are
+  walked in a fixed/sorted order so fixture output is stable.
+- Thumbnails are deterministic placeholders (inline SVG / data-uri, no headless browser);
+  materialized visual elements render as typed placeholder boxes and request no external
+  assets.
+
+This is the same structured model Phase 7 PPTX export will read — the renderer proves a
+confirmed plan materializes into a previewable, export-shareable model.
+
 ## 8. Future Enterprise Layer
 
 Future enterprise capabilities:

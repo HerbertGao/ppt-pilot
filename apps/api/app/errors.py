@@ -124,3 +124,20 @@ class SlidePlanNotFoundError(NotFoundError):
 
 class SlidePlanNotConfirmableError(StateError):
     code = "SLIDE_PLAN_NOT_CONFIRMABLE"
+
+
+# --------------------------------------------------------------------------- #
+# Phase 6 slide-materialization codes (same status derivation as above).
+# --------------------------------------------------------------------------- #
+
+
+class PresentationNotFoundError(NotFoundError):
+    code = "PRESENTATION_NOT_FOUND"
+
+
+class SlidesNotMaterializableError(StateError):
+    code = "SLIDES_NOT_MATERIALIZABLE"
+
+
+class SlideValidationError(ValidationError):
+    code = "SLIDE_VALIDATION_ERROR"

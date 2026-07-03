@@ -11,6 +11,12 @@ import type {
 
 export type JsonObject = Record<string, unknown>;
 
+export interface ThemeTokens {
+  palette: Record<string, string>;
+  fonts: Record<string, string>;
+  spacing: Record<string, number | string>;
+}
+
 export interface QuestionPolicy {
   mode: QuestionMode;
   sceneThreshold: number;

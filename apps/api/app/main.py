@@ -263,18 +263,41 @@ def _selfcheck() -> None:
             assert len(get_repository().list_events(p2)) == before + 1, (to, "event count")
         assert get_repository().get_project(p2).state == "SLIDE_PLAN_REVIEW"
 
-        # SLIDE_PLAN_REVIEW -> SLIDE_GENERATION is Phase 6+; still illegal, no side effect.
+        # Phase 6: SLIDE_PLAN_REVIEW -> SLIDE_GENERATION is now a legal forward edge
+        # (transition-only, no materialize) and appends exactly one event.
         before = len(get_repository().list_events(p2))
         status, data = await call(
             "POST", f"/api/projects/{p2}/transitions", b'{"to":"SLIDE_GENERATION"}'
         )
-        assert status == 409 and data["code"] == "INVALID_STATE_TRANSITION", data
-        assert get_repository().get_project(p2).state == "SLIDE_PLAN_REVIEW"
-        assert len(get_repository().list_events(p2)) == before
+        assert status == 200 and data["status"] == "SLIDE_GENERATION", data
+        assert len(get_repository().list_events(p2)) == before + 1
 
-        # None-safe rollback: reached SLIDE_PLAN_REVIEW without ever generating, so
-        # outline/slidePlans are empty. Rolling back down the chain must not crash on
-        # the None artifacts and must reset slidePlansConfirmed.
+        # Edges past SLIDE_GENERATION are Phase 7+; still illegal, no side effect.
+        for to in ("EDITING", "EXPORT_READY"):
+            before = len(get_repository().list_events(p2))
+            status, data = await call(
+                "POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode()
+            )
+            assert status == 409 and data["code"] == "INVALID_STATE_TRANSITION", (to, data)
+            assert get_repository().get_project(p2).state == "SLIDE_GENERATION"
+            assert len(get_repository().list_events(p2)) == before
+
+        # None-safe rollback SLIDE_GENERATION -> SLIDE_PLAN_REVIEW: presentation was
+        # never materialized (None), so the clear is a no-op and must not crash; the
+        # confirmed plans (whatever they are) are retained across this rollback.
+        plans_before = get_repository().get_project(p2).slidePlans
+        confirmed_before = get_repository().get_project(p2).slidePlansConfirmed
+        status, data = await call(
+            "POST", f"/api/projects/{p2}/transitions", b'{"to":"SLIDE_PLAN_REVIEW"}'
+        )
+        assert status == 200 and data["status"] == "SLIDE_PLAN_REVIEW", data
+        proj = get_repository().get_project(p2)
+        assert proj.presentation is None, proj
+        assert proj.slidePlans == plans_before, proj
+        assert proj.slidePlansConfirmed == confirmed_before, proj
+
+        # Continue rolling back down the chain; None artifacts must not crash and
+        # slidePlansConfirmed resets.
         for to in ("SLIDE_PLANNING", "OUTLINE_REVIEW", "OUTLINE_GENERATION", "REQUIREMENT_REVIEW"):
             status, data = await call(
                 "POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode()

@@ -43,6 +43,7 @@ import type {
   QuestionPolicy,
   Slide,
   SlidePlan,
+  ThemeTokens,
   Version,
 } from "./types.js";
 
@@ -79,6 +80,7 @@ export interface EntityMap {
   Asset: Asset;
   Version: Version;
   Event: SchemaEvent;
+  ThemeTokens: ThemeTokens;
 }
 
 export const SCHEMA_CONTRACT_VERSION = "phase-1-foundation";
@@ -93,6 +95,7 @@ export const runtimeValidationEntrypoints = {
   Asset: "validateAsset",
   Version: "validateVersion",
   Event: "validateEvent",
+  ThemeTokens: "validateThemeTokens",
 } as const satisfies Record<EntityName, string>;
 
 interface ValidationDraft<T> {
@@ -1256,6 +1259,87 @@ function validateVersionAt(input: unknown, path: string): ValidationDraft<Versio
   };
 }
 
+function readThemeTokenGroup(
+  record: JsonObject,
+  key: string,
+  path: string,
+  errors: ValidationError[],
+  valueKind: "string" | "spacing",
+): Record<string, number | string> | undefined {
+  const group = readRequiredObject(record, key, path, errors);
+
+  if (group === undefined) {
+    return undefined;
+  }
+
+  const groupPath = childPath(path, key);
+  const keys = Object.keys(group);
+
+  if (keys.length === 0) {
+    error(errors, groupPath, "must contain at least one named token");
+    return undefined;
+  }
+
+  const result: Record<string, number | string> = {};
+  let groupOk = true;
+
+  for (const tokenKey of keys) {
+    const value = group[tokenKey];
+    const valuePath = childPath(groupPath, tokenKey);
+
+    if (valueKind === "string") {
+      if (typeof value !== "string" || value.trim().length === 0) {
+        error(errors, valuePath, "must be a non-empty string");
+        groupOk = false;
+        continue;
+      }
+      result[tokenKey] = value;
+    } else {
+      if (typeof value === "string") {
+        if (value.trim().length === 0) {
+          error(errors, valuePath, "must be a non-empty string or finite number");
+          groupOk = false;
+          continue;
+        }
+        result[tokenKey] = value;
+      } else if (typeof value === "number" && Number.isFinite(value)) {
+        result[tokenKey] = value;
+      } else {
+        error(errors, valuePath, "must be a non-empty string or finite number");
+        groupOk = false;
+      }
+    }
+  }
+
+  return groupOk ? result : undefined;
+}
+
+function validateThemeTokensAt(input: unknown, path: string): ValidationDraft<ThemeTokens> {
+  const errors: ValidationError[] = [];
+  const record = readRootObject(input, path, errors);
+
+  if (record === undefined) {
+    return { errors };
+  }
+
+  const palette = readThemeTokenGroup(record, "palette", path, errors, "string");
+  const fonts = readThemeTokenGroup(record, "fonts", path, errors, "string");
+  const spacing = readThemeTokenGroup(record, "spacing", path, errors, "spacing");
+
+  if (errors.length > 0 || palette === undefined || fonts === undefined || spacing === undefined) {
+    return { errors };
+  }
+
+  return {
+    data: {
+      palette: palette as Record<string, string>,
+      fonts: fonts as Record<string, string>,
+      spacing,
+    },
+    errors,
+  };
+}
+
 function validateEventAt(input: unknown, path: string): ValidationDraft<SchemaEvent> {
   const errors: ValidationError[] = [];
   const record = readRootObject(input, path, errors);
@@ -1391,6 +1475,11 @@ function validateEventPayload(type: EventType, payload: JsonObject, path: string
       readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
       break;
     }
+    case "SLIDES_MATERIALIZED": {
+      readRequiredNumber(payload, "slideCount", path, errors, { integer: true, min: 1 });
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
     default: {
       // fail-closed: any EVENT_TYPE without an explicit payload case must fail,
       // so adding a type to EVENT_TYPES without a case surfaces in tests.
@@ -1445,6 +1534,11 @@ export function validateEvent(input: unknown): ValidationResult<SchemaEvent> {
   return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
 }
 
+export function validateThemeTokens(input: unknown): ValidationResult<ThemeTokens> {
+  const result = validateThemeTokensAt(input, "$");
+  return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
+}
+
 export function validateEntity<K extends EntityName>(entityName: K, input: unknown): ValidationResult<EntityMap[K]>;
 export function validateEntity(entityName: string, input: unknown): ValidationResult<unknown>;
 export function validateEntity(entityName: string, input: unknown): ValidationResult<unknown> {
@@ -1467,6 +1561,8 @@ export function validateEntity(entityName: string, input: unknown): ValidationRe
       return validateVersion(input);
     case "Event":
       return validateEvent(input);
+    case "ThemeTokens":
+      return validateThemeTokens(input);
     default:
       return fail([
         {
