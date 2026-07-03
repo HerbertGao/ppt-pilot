@@ -11,20 +11,34 @@ The system should behave like an experienced product manager and presentation co
 ## 2. Agent List
 
 ```text
-Requirement Discovery Agent
-Requirement Gap Agent
-Question Agent
-Spec Builder Agent
-Outline Agent
-Slide Planner Agent
-Content Agent
-Layout Agent
-Image Agent
-Review Agent
-Export Agent
+Requirement Discovery Agent   (implemented, Phase 3)
+Requirement Gap Agent         (implemented, Phase 3)
+Question Agent                (implemented, Phase 3)
+Spec Builder Agent            (implemented, Phase 3)
+Outline Agent                 (implemented, Phase 5)
+Slide Planner Agent           (implemented, Phase 5)
+Content Agent                 (planned)
+Layout Agent                  (planned)
+Image Agent                   (planned, Phase 9)
+Review Agent                  (planned, Phase 10)
 ```
 
-## 3. Requirement Discovery Agent
+Implemented agents run behind the `LLMProvider` interface (OpenRouter/DeepSeek,
+text-only; deterministic mock in CI). The Requirement Discovery / Gap / Question /
+Spec Builder set is the Phase 3 requirement-and-spec pipeline; Outline and Slide
+Planner are Phase 5.
+
+Two downstream steps are **deterministic non-agent services** — no LLM, no agent:
+
+- **Slide materialization** (Phase 6): turns confirmed slide plans into the slide
+  model / HTML preview via pure functions (`apps/api` + `packages/ppt-engine`).
+- **PPTX export** (Phase 7): renders the presentation to `.pptx` via python-pptx
+  in the backend (`apps/api/app/export.py`).
+
+There is no "Export Agent"; export is a deterministic service. Content / Layout /
+Image / Review agents below are forward-looking design and are **not yet built**.
+
+## 3. Requirement Discovery Agent (Phase 3 implemented)
 
 ### Goal
 
@@ -61,7 +75,7 @@ Understand the user's real presentation need.
 }
 ```
 
-## 4. Requirement Gap Agent
+## 4. Requirement Gap Agent (Phase 3 implemented)
 
 ### Goal
 
@@ -84,7 +98,7 @@ DO_NOT_ASK: can use defaults
 Audience is usually MUST_ASK.
 Company logo is usually SHOULD_ASK or DO_NOT_ASK.
 
-## 5. Question Agent
+## 5. Question Agent (Phase 3 implemented)
 
 ### Goal
 
@@ -132,7 +146,7 @@ fast: 3
 thorough: 5
 ```
 
-## 6. Spec Builder Agent
+## 6. Spec Builder Agent (Phase 3 implemented)
 
 ### Goal
 
@@ -238,7 +252,7 @@ never trusted to the LLM, because `slideId` is the key for the single-page
 }
 ```
 
-## 9. Content Agent
+## 9. Content Agent (planned — not implemented)
 
 ### Goal
 
@@ -255,7 +269,7 @@ Generate text elements.
 
 Structured text elements only. No layout coordinates.
 
-## 10. Layout Agent
+## 10. Layout Agent (planned — not implemented)
 
 ### Goal
 
@@ -273,7 +287,7 @@ Place elements onto a slide.
 
 Element coordinates and layout metadata.
 
-## 11. Image Agent
+## 11. Image Agent (planned, Phase 9 — not implemented)
 
 ### Goal
 
@@ -293,7 +307,7 @@ Create or retrieve visual assets.
 - License metadata if downloaded
 - Attribution requirements if any
 
-## 12. Review Agent
+## 12. Review Agent (planned, Phase 10 — not implemented)
 
 ### Goal
 

@@ -1,6 +1,8 @@
 # apps/api
 
-Phase 1 FastAPI backend shell for PPTPilot.
+FastAPI backend for PPTPilot. Implements the project lifecycle, the workflow
+state machine, the event log, the requirement/outline/slide-plan agents, and the
+deterministic slide-materialization and PPTX-export services (Phases 2–7).
 
 ## Start entrypoint
 
@@ -16,58 +18,54 @@ Or from this directory:
 python3 -m app.main
 ```
 
-The shell exposes only:
+`GET /health` returns a liveness payload. The full API surface (project lifecycle,
+transitions, requirement discovery, outline, slide plans, materialize, presentation,
+export/download) is documented in [`docs/API.md`](../../docs/API.md).
 
-```text
-GET /health
-```
+## What's implemented
 
-Expected health response:
+- **Workflow state machine** (`app/workflow.py`): a 12-state machine
+  (`NEW_PROJECT → … → SLIDE_GENERATION → EXPORT_READY → EXPORTED`) with an explicit
+  legal-adjacency edge table and None-safe rollback edges. Transitions are
+  **LLM-free / structural**; `EDITING`/`REVIEW` have no edges yet (Phase 8).
+- **Agents** (behind an `LLMProvider`, OpenRouter/DeepSeek, text-only): Requirement
+  Discovery (Phase 3), Outline (Phase 5), Slide Planner (Phase 5).
+- **Deterministic services** (no LLM, no network): slide materialization
+  (`app/presentation.py`, Phase 6) and PPTX export (`app/export.py` via
+  `python-pptx`, Phase 7).
+- **Event log** with validate-before-append, and a group-based error convention
+  (`app/errors.py` / `app/main.py`): `ValidationError`→400, `StateError`→409,
+  `NotFoundError`→404, `UpstreamError`→502, unhandled→500.
 
-```json
-{
-  "status": "ok",
-  "service": "ppt-pilot-api",
-  "phase": "phase-1-foundation"
-}
-```
+Not built here yet: content/image/layout generation, canvas editing, slide/element
+lock runtime, version history, Review Agent (Phases 8–10).
 
-## Shared-schema consumption
+## Shared-schema consumption (canonical contract)
 
-`packages/shared-schema` is the canonical contract source. The API shell does not
-define Pydantic core entity models in Phase 1, because that would risk drifting
-from the shared TypeScript/runtime contract.
+`packages/shared-schema` is the **single source of truth** for entity shapes,
+enums, defaults, and validation. The API must **not** duplicate enum/default/
+profile rules (scenes, style profiles, workflow states, event payloads); it
+validates through `app/shared_schema_adapter.py`, which calls Node in a subprocess,
+loads `packages/shared-schema/dist/index.js`, and invokes the shared-schema
+`validateEntity` / event-payload validators. This is the runtime validation path
+for every persisted entity and event (materialize and export both validate their
+output against shared-schema before persisting).
 
-The smoke check in `app/shared_schema_adapter.py` and
-`app/shared_schema_smoke.py` is a thin Phase 1 compatibility proof. It calls
-Node in a subprocess, loads `packages/shared-schema/dist/index.js`, invokes the
-shared-schema `validateEntity` export, validates one legal `PresentationSpec`
-fixture, and confirms one illegal `PresentationSpec` fixture is rejected.
-
-The build artifact must exist before running the smoke check. If
-`packages/shared-schema/dist/index.js` is missing, run:
+The build artifact must exist before validation runs. If
+`packages/shared-schema/dist/index.js` is missing:
 
 ```bash
 pnpm --filter @ppt-pilot/shared-schema build
 ```
 
-or use the root validate/typecheck flow that builds shared-schema first.
+(or the root `pnpm run validate` flow, which builds shared-schema first).
 
-Run it from the repository root:
+## Tests & self-check
 
 ```bash
-python3 apps/api/scripts/smoke_shared_schema.py
+# from the repo root, using the API venv
+apps/api/.venv/bin/python -m pytest apps/api            # backend suite (193)
+cd apps/api && .venv/bin/python -m app.main --selfcheck # state-machine + routes consistency
 ```
 
-This is intentionally only a Phase 1 smoke check, not an independent backend
-core entity model. The API side must not maintain duplicated enum/default/profile
-rules such as scenes or style profile mappings. Later API validation must be
-driven by generated JSON Schema, generated Pydantic models, or a
-shared-schema-backed adapter that is mechanically checked against
-`packages/shared-schema`.
-
-## Explicit Phase 1 non-goals
-
-This API shell must not implement project lifecycle APIs, requirement
-clarification, Outline APIs, Slide Plan APIs, HTML preview, PPTX export, AI
-agent orchestration, persistence, or a real workflow state machine.
+The suite is hermetic: the LLM provider is mocked and there is no network access.

@@ -187,15 +187,17 @@ Notes:
 错误分类 → 错误码映射（稳定且明确）：
 
 ```text
-VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY | SPEC_VALIDATION_ERROR | OUTLINE_VALIDATION_ERROR | SLIDE_PLAN_VALIDATION_ERROR   (HTTP 400)
-STATE_ERROR      -> INVALID_STATE_TRANSITION | SPEC_NOT_CONFIRMABLE | OUTLINE_NOT_CONFIRMABLE | SLIDE_PLAN_NOT_CONFIRMABLE                                                                          (HTTP 409)
-NOT_FOUND        -> PROJECT_NOT_FOUND | QUESTION_NOT_FOUND | OUTLINE_NOT_FOUND | SLIDE_PLAN_NOT_FOUND                                                                                                (HTTP 404)
+VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY | SPEC_VALIDATION_ERROR | OUTLINE_VALIDATION_ERROR | SLIDE_PLAN_VALIDATION_ERROR | SLIDE_VALIDATION_ERROR | EXPORT_VALIDATION_ERROR   (HTTP 400)
+STATE_ERROR      -> INVALID_STATE_TRANSITION | SPEC_NOT_CONFIRMABLE | OUTLINE_NOT_CONFIRMABLE | SLIDE_PLAN_NOT_CONFIRMABLE | SLIDES_NOT_MATERIALIZABLE | EXPORT_NOT_READY                                                                        (HTTP 409)
+NOT_FOUND        -> PROJECT_NOT_FOUND | QUESTION_NOT_FOUND | OUTLINE_NOT_FOUND | SLIDE_PLAN_NOT_FOUND | PRESENTATION_NOT_FOUND | EXPORT_ARTIFACT_NOT_FOUND                                                                                       (HTTP 404)
 UPSTREAM_ERROR   -> LLM_PROVIDER_ERROR                                                                                                                                                             (HTTP 502)
 ```
 
 Phase 3 新增码：`SPEC_VALIDATION_ERROR`（Spec 未过 schema 校验）、`QUESTION_NOT_FOUND`（未知 `questionId`）、`SPEC_NOT_CONFIRMABLE`（确认前置状态不满足，或确认后未回退即改 profile）、`LLM_PROVIDER_ERROR`（`LLMProvider` 上游/超时失败，映射为 HTTP 502，不泄漏框架默认体）。
 
 Phase 5 新增码（均为既有基类子类，复用既有分组映射）：`OUTLINE_VALIDATION_ERROR` / `SLIDE_PLAN_VALIDATION_ERROR`（产物未过 schema 校验，400）、`OUTLINE_NOT_CONFIRMABLE`（已在 `OUTLINE_GENERATION` 但 Spec 未确认或为 None，409）、`SLIDE_PLAN_NOT_CONFIRMABLE`（大纲未确认或为 None，409）、`OUTLINE_NOT_FOUND` / `SLIDE_PLAN_NOT_FOUND`（confirm/GET 无产物，或规划为空，404）。**在错误的状态下调用大纲/规划动作端点**（与内容前置无关）判为 `INVALID_STATE_TRANSITION`（409）；动作端点没有 `to` 语义，故抛出点清除默认 `details.field="to"`（该字段返回为空）。
+
+Phase 6/7 新增码（均为既有基类子类，复用既有分组映射）：`SLIDE_VALIDATION_ERROR`（materialize 产物 `ThemeTokens`/`Presentation` 未过 schema 校验，400）、`SLIDES_NOT_MATERIALIZABLE`（已在 `SLIDE_GENERATION` 但 Spec 未确认、规划未确认或为空，409）、`PRESENTATION_NOT_FOUND`（GET presentation 无产物，404）、`EXPORT_VALIDATION_ERROR`（`ExportArtifact` 未过 schema 校验，400）、`EXPORT_NOT_READY`（已在 `EXPORT_READY` 但无已材料化的 presentation 或页数为空，409）、`EXPORT_ARTIFACT_NOT_FOUND`（下载未知 `artifactId`，404）。与大纲/规划动作端点一致：**在错误的状态下调用 materialize/export 动作端点**判为 `INVALID_STATE_TRANSITION`（409），抛出点清除默认 `details.field="to"`。
 
 框架原生错误（畸形 JSON / 字段类型错误触发的 `RequestValidationError`，以及 `HTTPException`）经异常处理器映射为同一结构（`error=VALIDATION_ERROR`、`code=INVALID_REQUEST_BODY`），不返回 FastAPI 默认的 `detail` 数组。
 
@@ -449,17 +451,113 @@ GET /api/projects/{projectId}/slides/plans
 
 - 读回 `{ slidePlans, slidePlansConfirmed }`；无副作用。无规划或规划为空 → `SLIDE_PLAN_NOT_FOUND`。
 
-## 6. Slide Generation APIs
+## 6. Slide Materialization APIs (Phase 6 implemented)
 
-These APIs are roadmap drafts for later phases. They are not part of Phase 1 requirement discovery.
+Materialization is **deterministic and LLM-free**: it assembles the confirmed
+`SlidePlan[]` plus the confirmed `PresentationSpec` into a `Presentation` that
+passes `validateEntity("Presentation")`. There is no content/image generation
+here — non-text visual intents become labeled placeholder elements. The action
+endpoint **does not advance the workflow state** (`nextState == current state`);
+it is replay-safe (whole-`Presentation` overwrite). All interfaces follow the
+§2.4 unified error convention; a rejected request has no side effect
+(validate-before-persist: `ThemeTokens` then the whole `Presentation` are
+validated before any write, so storage and the event sequence stay untouched).
 
-### Generate Slide
+Reaching `SLIDE_GENERATION` is a **separate** explicit `POST /transitions`
+(`SLIDE_PLAN_REVIEW → SLIDE_GENERATION`); materialize itself only runs while
+already in `SLIDE_GENERATION`.
+
+### Materialize Slides
+
+```http
+POST /api/projects/{projectId}/slides/materialize
+```
+
+- 前置：`state == SLIDE_GENERATION`；`spec` 已确认（`spec.confirmedByUser`，None-safe）；`slidePlans` 非空且已确认（`slidePlansConfirmed`，None-safe）。
+- 成功返回完整、已校验的 `Presentation`（`{ id, projectId, title, spec, theme, scene, styleProfileId, assets: [], slides: [...] }`），并**整体覆盖** `project.presentation`，追加 `SLIDES_MATERIALIZED`（payload `slideCount` + `nextState`，`nextState` 等于当前状态）。每个 `slide` 生成 title/body 文本元素，非 `text` 的 `visualIntent`（`chart` / `diagram` / `comparison` / `timeline` / `image`）再追加一个占位视觉元素；`slide.plan` 为源 plan 的副本且 `requiredAssets=[]`（本阶段无 `Asset`）。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`（409，`details.field` 清空）；`spec`/规划未确认或规划为空 → `SLIDES_NOT_MATERIALIZABLE`（409）；产物（`ThemeTokens` 或 `Presentation`）未过 schema 校验 → `SLIDE_VALIDATION_ERROR`（400，无副作用）。
+
+### Get Presentation
+
+```http
+GET /api/projects/{projectId}/presentation
+```
+
+- 读回已持久化的完整 `Presentation`；无副作用。尚未材料化 → `PRESENTATION_NOT_FOUND`（404）。
+
+## 7. Export APIs (Phase 7 implemented)
+
+Export is **deterministic, LLM-free, and network-free**: it turns the persisted
+`Presentation` into a `.pptx` via `python-pptx` and produces an `ExportArtifact`.
+Charts / images / diagrams are rendered as labeled `[type]` PLACEHOLDER shapes
+(real rendering is later-phase). The action endpoint **does not advance the
+workflow state** — it stays in `EXPORT_READY` and appends a single
+`PRESENTATION_EXPORTED` event whose `nextState` equals the current state.
+Reaching `EXPORTED` is a **separate** explicit `POST /transitions`
+(`EXPORT_READY → EXPORTED`). All interfaces follow the §2.4 error convention; a
+rejected request has no side effect (the `ExportArtifact` and the event are
+validated before any write).
+
+Reaching `EXPORT_READY` is likewise a separate `POST /transitions`
+(`SLIDE_GENERATION → EXPORT_READY`).
+
+The list and POST responses expose **metadata only** — never the unbounded
+`bytesBase64`, which is served solely by the single-artifact download stream.
+
+### Export Presentation
+
+```http
+POST /api/projects/{projectId}/export
+```
+
+- 前置：`state == EXPORT_READY`；`project.presentation` 已材料化（有 `id` 且至少一页，None-safe，dict 访问）。
+- 成功产出 `.pptx` 字节，追加至 `project.exports`，并追加 `PRESENTATION_EXPORTED`（payload `artifactId` + `format` + `byteSize` + `nextState`，`nextState` 等于当前状态 `EXPORT_READY`）。响应为 `ExportArtifact` 的**元数据投影**（不含 `bytesBase64`）：
+
+```json
+{
+  "id": "pres_proj_001_export_1",
+  "projectId": "proj_001",
+  "format": "pptx",
+  "byteSize": 30412,
+  "sourcePresentationId": "pres_proj_001",
+  "createdBy": "ai",
+  "createdAt": "2026-07-01T00:00:00.000Z"
+}
+```
+
+- `artifact.id` 为 `{sourcePresentationId}_export_{n}`（`n` 从 1 递增，追加单调）；`byteSize == len(pptx bytes)`（与字节同源构造）。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`（409，`details.field` 清空）；无已材料化 presentation 或页数为空 → `EXPORT_NOT_READY`（409）；`ExportArtifact` 未过 schema 校验 → `EXPORT_VALIDATION_ERROR`（400，无副作用）。
+
+### Download Export Artifact
+
+```http
+GET /api/projects/{projectId}/export/{artifactId}
+```
+
+- 返回该 artifact 的 `.pptx` 二进制流，`Content-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation`，`Content-Disposition: attachment; filename="{artifactId}.pptx"`，`Content-Length == byteSize`。无副作用。
+- 未知 `artifactId` → `EXPORT_ARTIFACT_NOT_FOUND`（404）。
+
+### List Exports
+
+```http
+GET /api/projects/{projectId}/exports
+```
+
+- 返回 `{ "exports": [ ...metadata ] }`（每项与 POST 响应同形，**不含** `bytesBase64`）；无副作用。项目无导出时 `exports` 为空数组。
+
+## 8. Roadmap Draft (Phase 8/9, not implemented)
+
+以下端点为后续阶段的前瞻草案，**尚未实现**，不要当作可用 API：Slide/element 内容生成与再生（文本/图片/布局 scope）、图片候选与 text-to-image（`ImageProvider`）属 Phase 8/9；Canvas 编辑与锁定运行时属 Phase 8；Review Agent / 重复率属 Phase 10。请求/响应结构可能随实现调整。
+
+### 8.1 Slide Generation (Phase 8/9)
+
+#### Generate Slide
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/generate
 ```
 
-### Regenerate Slide
+#### Regenerate Slide
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/regenerate
@@ -500,7 +598,7 @@ Successful job result for image regeneration may include generated variants:
 }
 ```
 
-### Regenerate Element
+#### Regenerate Element
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/elements/{elementId}/regenerate
@@ -520,7 +618,7 @@ Notes:
 
 - `scope` 为元素级枚举，`full` 表示仅该元素全量重生（即替换该元素全部可生成项）；`full_slide` 仅用于 `/slides/{slideId}/regenerate`。
 
-### Choose Image Variant
+#### Choose Image Variant
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/elements/{elementId}/image-variants/{assetId}/select
@@ -534,37 +632,35 @@ Request:
 }
 ```
 
-## 7. Editing APIs (Roadmap Draft)
+### 8.2 Editing (Phase 8)
 
-### Update Element
+#### Update Element
 
 ```http
 PATCH /api/projects/{projectId}/slides/{slideId}/elements/{elementId}
 ```
 
-### Lock Element
+#### Lock Element
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/elements/{elementId}/lock
 ```
 
-### Unlock Element
+#### Unlock Element
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/elements/{elementId}/unlock
 ```
 
-### Lock Slide
+#### Lock Slide
 
 ```http
 POST /api/projects/{projectId}/slides/{slideId}/lock
 ```
 
-## 8. Review APIs
+### 8.3 Review (Phase 10)
 
-Review APIs are later-phase drafts after slide generation exists.
-
-### Run Review
+#### Run Review
 
 ```http
 POST /api/projects/{projectId}/review
@@ -579,7 +675,7 @@ Response:
 }
 ```
 
-### Run Duplicate Rate Check
+#### Run Duplicate Rate Check
 
 ```http
 POST /api/projects/{projectId}/review/duplicate-check
@@ -595,40 +691,10 @@ Response:
 }
 ```
 
-## 9. Export APIs (Roadmap Draft)
+### 8.4 Async Job Model (draft)
 
-### Export
-
-```http
-POST /api/projects/{projectId}/export
-```
-
-Request:
-
-```json
-{
-  "format": "pptx | pdf | html"
-}
-```
-
-Response:
-
-```json
-{
-  "artifactId": "export_001",
-  "status": "processing"
-}
-```
-
-### Download Export
-
-```http
-GET /api/exports/{artifactId}/download
-```
-
-## 10. Async Job Model
-
-Generation and export should return job IDs.
+Long-running generation may return job IDs. Note the implemented Phase 6/7
+materialize + export paths are **synchronous** and do not use this model.
 
 ```json
 {
@@ -647,7 +713,7 @@ failed
 cancelled
 ```
 
-## 11. Streaming Logs Later
+### 8.5 Streaming Logs (draft)
 
 Use SSE:
 

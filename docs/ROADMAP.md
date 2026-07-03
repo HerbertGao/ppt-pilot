@@ -35,6 +35,8 @@ Status: completed.
 
 ## Phase 1: Foundation, Monorepo, and Shared Schema
 
+Status: completed (archived).
+
 Goal: establish the project skeleton and canonical contract layer before building product behavior.
 
 Deliverables:
@@ -67,6 +69,8 @@ phase-1-foundation-monorepo-and-shared-schema
 
 ## Phase 2: Backend API Skeleton and Workflow State
 
+Status: completed (archived, PR #9).
+
 Goal: create the minimal backend surface and state machine that later agents can use.
 
 Deliverables:
@@ -93,6 +97,8 @@ phase-2-api-skeleton-and-workflow-state
 ```
 
 ## Phase 3: Requirement Discovery and Spec Builder
+
+Status: completed (archived, PR #10).
 
 Goal: implement the first useful AI workflow on top of the schema and backend foundation.
 
@@ -121,6 +127,8 @@ phase-3-requirement-discovery-and-spec-builder
 
 ## Phase 4: Frontend Workflow Shell
 
+Status: completed (archived, PR #12).
+
 Goal: provide a usable web flow for the early backend capabilities.
 
 Deliverables:
@@ -146,6 +154,8 @@ phase-4-frontend-workflow-shell
 
 ## Phase 5: Outline and Slide Planning
 
+Status: completed (archived, PR #20).
+
 Goal: generate deck structure before any final slide content or visual asset generation.
 
 Deliverables:
@@ -168,6 +178,8 @@ phase-5-outline-and-slide-planning
 ```
 
 ## Phase 6: HTML Preview Renderer and Slide Model
+
+Status: completed (archived, PR #21).
 
 Goal: prove the structured presentation model can render a coherent deck preview.
 
@@ -192,6 +204,8 @@ phase-6-html-preview-and-slide-model
 
 ## Phase 7: PPTX Export MVP
 
+Status: completed (archived, PR #22).
+
 Goal: export from structured presentation data without making PPTX the source of truth.
 
 Deliverables:
@@ -213,6 +227,8 @@ phase-7-pptx-export-mvp
 ```
 
 ## Phase 8: Canvas Editing and Lock Model
+
+Status: not started (planned).
 
 Goal: allow manual adjustment and establish locked-content protection.
 
@@ -239,6 +255,8 @@ phase-8-canvas-editing-and-lock-model
 
 ## Phase 9: Partial Regeneration and Image Variants
 
+Status: not started (planned).
+
 Goal: regenerate only user-approved scopes.
 
 Deliverables:
@@ -263,6 +281,8 @@ phase-9-partial-regeneration-and-image-variants
 ```
 
 ## Phase 10: Versioning, Review, and Quality Checks
+
+Status: not started (planned).
 
 Goal: make experimentation reviewable and recoverable.
 

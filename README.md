@@ -31,7 +31,15 @@ Requirement Discovery
 
 ## Repository Status
 
-This repository currently contains product and technical initialization documents intended for Claude Code, Codex, Gemini CLI, and other AI coding agents.
+Phases 1–7 are implemented and archived. What exists today:
+
+- Monorepo with a canonical `packages/shared-schema` contract (types, validators, fixtures) consumed by the API and renderer.
+- FastAPI backend (`apps/api`) implementing the full workflow: requirement discovery -> Presentation Spec -> outline -> slide plan -> materialize -> PPTX export, with a 12-state workflow state machine and an event log.
+- Deterministic HTML preview renderer in `packages/ppt-engine` (pure functions, theme-to-CSS, placeholder thumbnails).
+- PPTX export in the backend via `python-pptx` (charts/images/diagrams render as labeled placeholder shapes).
+- Next.js frontend (`apps/web`) at the Phase 4 shell: create project, requirement discovery, spec review, and workflow status. Preview and export UI pages are not built yet.
+
+Requirement Discovery, Outline, and Slide Planner run behind an `LLMProvider` interface (OpenRouter/DeepSeek, text-only); materialize and export are deterministic and require no LLM or network. Canvas editing, element locking, partial regeneration, image generation, and the Review Agent are not built (Roadmap Phases 8–10).
 
 Start here:
 
@@ -39,51 +47,55 @@ Start here:
 - [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
 - [docs/AGENTS.md](./docs/AGENTS.md)
 - [docs/DATA_MODEL.md](./docs/DATA_MODEL.md)
+- [docs/ROADMAP.md](./docs/ROADMAP.md)
 - [docs/TASKS.md](./docs/TASKS.md)
 
-## Phase 1 Development Commands
-
-Phase 1 establishes the monorepo shell, shared schema contract, fixtures, Web
-shell, and API shell. It intentionally does not implement real AI agents,
-workflow state machines, HTML preview, PPTX export, canvas editing, partial
-regeneration, or a Review Agent.
+## Development Commands
 
 Prerequisites:
 
-- Node.js 20+
+- Node.js 24+
 - pnpm 9+
-- Python 3.11+
+- Python 3.13+
 - Optional: `openspec-cn` for strict OpenSpec validation
 
-Install JavaScript workspace and API dependencies:
+Install the pnpm workspace plus the API into a local `.venv`:
 
 ```bash
 corepack enable
 pnpm run install:deps
 ```
 
-There is currently no `pnpm-lock.yaml`; use `--no-frozen-lockfile` until a
-lockfile is introduced. After the lockfile exists, CI and local verification
-should switch to frozen lockfile installs.
+CI installs with `--no-frozen-lockfile` (as does `install:deps`).
 
-After dependencies are installed, run the Phase 1 repository validation gate:
+Run the full repository validation gate:
 
 ```bash
 pnpm run validate
 ```
 
-Equivalent gate steps:
+Per-package checks:
 
 ```bash
+# shared-schema
 pnpm --filter @ppt-pilot/shared-schema typecheck
 pnpm --filter @ppt-pilot/shared-schema build
 pnpm --filter @ppt-pilot/shared-schema validate:fixtures
+
+# ppt-engine (HTML preview renderer)
+pnpm --filter @ppt-pilot/ppt-engine typecheck
+pnpm --filter @ppt-pilot/ppt-engine test
+
+# web shell
 pnpm --filter @ppt-pilot/web typecheck
-pnpm --filter @ppt-pilot/web build
-pnpm --filter @ppt-pilot/web smoke-start
-python3 -m compileall apps/api/app
-PYTHONPATH=apps/api python3 -m app.shared_schema_smoke
-PYTHONPATH=apps/api python3 -c "from app.main import health_check; assert health_check()['status'] == 'ok'"
+pnpm --filter @ppt-pilot/web test
+```
+
+Backend (`apps/api`) checks, from the repository root:
+
+```bash
+.venv/bin/python -m pytest apps/api/tests
+PYTHONPATH=apps/api .venv/bin/python -m app.main --selfcheck
 ```
 
 Start the Web shell locally:
@@ -92,32 +104,10 @@ Start the Web shell locally:
 pnpm --filter @ppt-pilot/web dev
 ```
 
-Install and smoke-check the API shell:
+Start the API locally:
 
 ```bash
-python3 -m pip install -e apps/api
-python3 -m compileall apps/api/app
-PYTHONPATH=apps/api python3 -m app.shared_schema_smoke
-PYTHONPATH=apps/api python3 -c "from app.main import health_check; assert health_check()['status'] == 'ok'"
-```
-
-Start the API shell locally:
-
-```bash
-PYTHONPATH=apps/api python3 -m app.main
-```
-
-Check the active Phase 1 OpenSpec artifact shape. If `openspec-cn` is
-available, also run strict validation:
-
-```bash
-test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/proposal.md
-test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/design.md
-test -f openspec/changes/phase-1-foundation-monorepo-and-shared-schema/tasks.md
-```
-
-```bash
-openspec-cn validate phase-1-foundation-monorepo-and-shared-schema --strict
+python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000
 ```
 
 CI gate details are documented in [docs/CI_GATES.md](./docs/CI_GATES.md).

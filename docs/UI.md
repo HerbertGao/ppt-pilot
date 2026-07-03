@@ -7,7 +7,14 @@ PPTPilot should be a desktop-first Web IDE with a mobile companion.
 Desktop is for creation and editing.
 Mobile is for requirement discussion, preview, comments, and approvals.
 
-## 2. Desktop Layout
+> Status: Sections 2–6 (desktop editor: canvas, panels, properties/AI actions,
+> bottom panel), 9 (mobile companion), and 11 (image variant picker) describe the
+> **planned** editing experience. None of it is built yet — the frontend today is
+> the Phase 4 workflow shell (see §12). Canvas/Konva editing is Phase 8, partial
+> regeneration and image variants are Phase 9. Sections 7–8 (requirement discovery
+> and spec review UX) are the parts that have shipped.
+
+## 2. Desktop Layout (planned — not built)
 
 ```text
 +----------------------------------------------------------+
@@ -185,11 +192,11 @@ Do not implement precise drag/resizing on mobile for MVP.
 Do not make the user prompt harder.
 Make the product ask better questions.
 
-## 11. Image Variant Picker
+## 11. Image Variant Picker (planned, Phase 9 — not built)
 
 When regenerating image-type elements, present 2~5 candidate images for explicit user selection.
 
-This belongs to Phase 6 partial regeneration, not Phase 1 requirement discovery.
+This belongs to Phase 9 partial regeneration / image variants, not requirement discovery.
 
 - Keep original element geometry when only image is regenerated.
 - User can request more batches if none are suitable.

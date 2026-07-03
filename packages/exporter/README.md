@@ -1,5 +1,7 @@
 # packages/exporter
 
-Reserved for future export logic.
+Reserved for a possible future TypeScript / pptxgenjs exporter.
 
-Group A does not implement PPTX, PDF, or HTML exporters and does not introduce PPTX exporter runtime dependencies.
+Phase 7 PPTX export is already implemented, but in the **backend**
+(`apps/api/app/export.py`, via python-pptx) — not here. This package stays empty
+until there's a reason to build a JS-side exporter.
