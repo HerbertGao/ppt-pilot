@@ -272,8 +272,10 @@ def _selfcheck() -> None:
         assert status == 200 and data["status"] == "SLIDE_GENERATION", data
         assert len(get_repository().list_events(p2)) == before + 1
 
-        # Edges past SLIDE_GENERATION are Phase 7+; still illegal, no side effect.
-        for to in ("EDITING", "EXPORT_READY"):
+        # EDITING remains Phase 8; still illegal, no side effect. (EXPORT_READY is now
+        # a legal forward edge from SLIDE_GENERATION — exercised on p3 below so this
+        # project can still drive the SLIDE_GENERATION->... rollback chain.)
+        for to in ("EDITING",):
             before = len(get_repository().list_events(p2))
             status, data = await call(
                 "POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode()
@@ -315,6 +317,74 @@ def _selfcheck() -> None:
         assert status == 409 and data["code"] == "INVALID_STATE_TRANSITION", data
         assert get_repository().get_project(p2).state == "REQUIREMENT_REVIEW"
         assert len(get_repository().list_events(p2)) == before
+
+        # Phase 7 export stage: a fresh project walks the full chain to
+        # SLIDE_GENERATION, then the export-stage forward + rollback edges.
+        p3_status, p3_data = await call("POST", "/api/projects", b"{}")
+        assert p3_status == 200, p3_data
+        p3 = p3_data["projectId"]
+        to_slide_gen = [
+            "REQUIREMENT_DISCOVERY", "REQUIREMENT_REVIEW", "OUTLINE_GENERATION",
+            "OUTLINE_REVIEW", "SLIDE_PLANNING", "SLIDE_PLAN_REVIEW", "SLIDE_GENERATION",
+        ]
+        for to in to_slide_gen:
+            status, data = await call(
+                "POST", f"/api/projects/{p3}/transitions", _json.dumps({"to": to}).encode()
+            )
+            assert status == 200 and data["status"] == to, (to, status, data)
+
+        # SLIDE_GENERATION -> EXPORT_READY -> EXPORTED are legal forward edges (from
+        # Phase 7), each appending exactly one event (transition-only, no export).
+        for to in ("EXPORT_READY", "EXPORTED"):
+            before = len(get_repository().list_events(p3))
+            status, data = await call(
+                "POST", f"/api/projects/{p3}/transitions", _json.dumps({"to": to}).encode()
+            )
+            assert status == 200 and data["status"] == to, (to, status, data)
+            assert len(get_repository().list_events(p3)) == before + 1, (to, "event count")
+
+        # EXPORTED -> EDITING (or any non-adjacent) is still illegal (Phase 8).
+        before = len(get_repository().list_events(p3))
+        status, data = await call(
+            "POST", f"/api/projects/{p3}/transitions", b'{"to":"EDITING"}'
+        )
+        assert status == 409 and data["code"] == "INVALID_STATE_TRANSITION", data
+        assert get_repository().get_project(p3).state == "EXPORTED"
+        assert len(get_repository().list_events(p3)) == before
+
+        # Export-stage rollback is None-safe AND non-destructive: seed sentinel
+        # exports/presentation, roll EXPORTED -> EXPORT_READY -> SLIDE_GENERATION,
+        # and assert both survive (design D10 append-only history).
+        proj = get_repository().get_project(p3)
+        proj.exports = [{"id": "pres_p3_export_1"}]
+        proj.presentation = {"id": "pres_p3"}
+        for to in ("EXPORT_READY", "SLIDE_GENERATION"):
+            status, data = await call(
+                "POST", f"/api/projects/{p3}/transitions", _json.dumps({"to": to}).encode()
+            )
+            assert status == 200 and data["status"] == to, (to, status, data)
+        proj = get_repository().get_project(p3)
+        assert proj.exports == [{"id": "pres_p3_export_1"}], proj
+        assert proj.presentation == {"id": "pres_p3"}, proj
+
+        # Phase 7 (task 3.7b): the export SERVICE rejects an EXPORT_READY project
+        # whose presentation is empty with EXPORT_NOT_READY, None-safe (never
+        # dereferences None) and zero-persist (no artifact, no event).
+        from .export import export as _export_service
+        from .errors import ExportNotReadyError
+
+        _, p4_data = await call("POST", "/api/projects", b"{}")
+        p4 = p4_data["projectId"]
+        p4_proj = get_repository().get_project(p4)
+        p4_proj.state = "EXPORT_READY"
+        p4_proj.presentation = None
+        try:
+            _export_service(get_repository(), p4)
+            raise AssertionError("export must reject an empty EXPORT_READY presentation")
+        except ExportNotReadyError:
+            pass
+        assert get_repository().list_events(p4) == []
+        assert get_repository().get_project(p4).exports == []
 
         # /health unchanged.
         status, data = await call("GET", "/health")

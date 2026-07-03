@@ -3,6 +3,7 @@ import {
   ELEMENT_TYPES,
   ENTITY_NAMES,
   EVENT_TYPES,
+  EXPORT_FORMATS,
   MAX_OUTLINE_SECTIONS,
   QUESTION_MODES,
   SCENES,
@@ -32,6 +33,7 @@ import type {
   AssetLicense,
   Element,
   Event as SchemaEvent,
+  ExportArtifact,
   ImageVariantsPolicy,
   JsonObject,
   LockFields,
@@ -81,6 +83,7 @@ export interface EntityMap {
   Version: Version;
   Event: SchemaEvent;
   ThemeTokens: ThemeTokens;
+  ExportArtifact: ExportArtifact;
 }
 
 export const SCHEMA_CONTRACT_VERSION = "phase-1-foundation";
@@ -96,6 +99,7 @@ export const runtimeValidationEntrypoints = {
   Version: "validateVersion",
   Event: "validateEvent",
   ThemeTokens: "validateThemeTokens",
+  ExportArtifact: "validateExportArtifact",
 } as const satisfies Record<EntityName, string>;
 
 interface ValidationDraft<T> {
@@ -1340,6 +1344,61 @@ function validateThemeTokensAt(input: unknown, path: string): ValidationDraft<Th
   };
 }
 
+// Structural base64 charset check only — the validator never decodes bytes.
+// byteSize == decoded length is a service-side invariant (service sets byteSize
+// and bytesBase64 from the same bytes), asserted by export tests, not here.
+const BASE64_PATTERN = /^[A-Za-z0-9+/]+={0,2}$/;
+
+function validateExportArtifactAt(input: unknown, path: string): ValidationDraft<ExportArtifact> {
+  const errors: ValidationError[] = [];
+  const record = readRootObject(input, path, errors);
+
+  if (record === undefined) {
+    return { errors };
+  }
+
+  const id = readRequiredString(record, "id", path, errors);
+  const projectId = readRequiredString(record, "projectId", path, errors);
+  const format = readRequiredEnum(record, "format", path, errors, EXPORT_FORMATS);
+  const bytesBase64 = readRequiredString(record, "bytesBase64", path, errors);
+  const byteSize = readRequiredNumber(record, "byteSize", path, errors, { integer: true, min: 1 });
+  const sourcePresentationId = readRequiredString(record, "sourcePresentationId", path, errors);
+  const createdBy = readRequiredEnum(record, "createdBy", path, errors, ACTOR_TYPES);
+  const createdAt = readRequiredString(record, "createdAt", path, errors);
+
+  if (bytesBase64 !== undefined && !BASE64_PATTERN.test(bytesBase64)) {
+    error(errors, childPath(path, "bytesBase64"), "must match the base64 character set");
+  }
+
+  if (
+    errors.length > 0 ||
+    id === undefined ||
+    projectId === undefined ||
+    format === undefined ||
+    bytesBase64 === undefined ||
+    byteSize === undefined ||
+    sourcePresentationId === undefined ||
+    createdBy === undefined ||
+    createdAt === undefined
+  ) {
+    return { errors };
+  }
+
+  return {
+    data: {
+      id,
+      projectId,
+      format,
+      bytesBase64,
+      byteSize,
+      sourcePresentationId,
+      createdBy,
+      createdAt,
+    },
+    errors,
+  };
+}
+
 function validateEventAt(input: unknown, path: string): ValidationDraft<SchemaEvent> {
   const errors: ValidationError[] = [];
   const record = readRootObject(input, path, errors);
@@ -1480,6 +1539,13 @@ function validateEventPayload(type: EventType, payload: JsonObject, path: string
       readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
       break;
     }
+    case "PRESENTATION_EXPORTED": {
+      readRequiredString(payload, "artifactId", path, errors);
+      readRequiredEnum(payload, "format", path, errors, EXPORT_FORMATS);
+      readRequiredNumber(payload, "byteSize", path, errors, { integer: true, min: 1 });
+      readRequiredEnum(payload, "nextState", path, errors, WORKFLOW_STATES);
+      break;
+    }
     default: {
       // fail-closed: any EVENT_TYPE without an explicit payload case must fail,
       // so adding a type to EVENT_TYPES without a case surfaces in tests.
@@ -1539,6 +1605,11 @@ export function validateThemeTokens(input: unknown): ValidationResult<ThemeToken
   return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
 }
 
+export function validateExportArtifact(input: unknown): ValidationResult<ExportArtifact> {
+  const result = validateExportArtifactAt(input, "$");
+  return result.data !== undefined && result.errors.length === 0 ? ok(result.data) : fail(result.errors);
+}
+
 export function validateEntity<K extends EntityName>(entityName: K, input: unknown): ValidationResult<EntityMap[K]>;
 export function validateEntity(entityName: string, input: unknown): ValidationResult<unknown>;
 export function validateEntity(entityName: string, input: unknown): ValidationResult<unknown> {
@@ -1563,6 +1634,8 @@ export function validateEntity(entityName: string, input: unknown): ValidationRe
       return validateEvent(input);
     case "ThemeTokens":
       return validateThemeTokens(input);
+    case "ExportArtifact":
+      return validateExportArtifact(input);
     default:
       return fail([
         {

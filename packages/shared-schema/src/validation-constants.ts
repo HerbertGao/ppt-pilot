@@ -2,6 +2,7 @@ export {
   ACTOR_TYPES,
   ELEMENT_TYPES,
   EVENT_TYPES,
+  EXPORT_FORMATS,
   QUESTION_MODES,
   SCENES,
   SLIDE_STATUSES,
@@ -13,6 +14,7 @@ export type {
   ActorType,
   ElementType,
   EventType,
+  ExportFormat,
   QuestionMode,
   Scene,
   SlideStatus,
@@ -37,6 +39,7 @@ export const ENTITY_NAMES = [
   "Version",
   "Event",
   "ThemeTokens",
+  "ExportArtifact",
 ] as const;
 
 export type EntityName = (typeof ENTITY_NAMES)[number];

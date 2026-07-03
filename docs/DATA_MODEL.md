@@ -414,6 +414,7 @@ SLIDE_PLAN_GENERATED    (Phase 5)
 SLIDE_PLAN_UPDATED      (Phase 5)
 SLIDE_PLAN_CONFIRMED    (Phase 5)
 SLIDES_MATERIALIZED     (Phase 6)
+PRESENTATION_EXPORTED   (Phase 7)
 ```
 
 `validateEventPayload` is **fail-closed**: an `EVENT_TYPES` member with no
@@ -435,13 +436,67 @@ SLIDE_PLAN_GENERATED: { slideCount, slideIds, nextState }
 SLIDE_PLAN_UPDATED: { slideId, nextState }
 SLIDE_PLAN_CONFIRMED: { slideCount, nextState }
 SLIDES_MATERIALIZED: { slideCount (int, min 1), nextState }
+PRESENTATION_EXPORTED: { artifactId, format ("pptx"), byteSize (int, min 1), nextState }
 ```
+
+Phase 7 adds **only** `PRESENTATION_EXPORTED` (the sole emitter is `export`).
+`nextState == EXPORT_READY` (the current state): export does **not** advance the
+workflow, so it appends no `WORKFLOW_STATE_CHANGED`. The event is validated before it
+is appended (validate-before-append, fail-closed), so a rejected export appends nothing.
 
 Phase 6 adds **only** `SLIDES_MATERIALIZED` (no `PRESENTATION_UPDATED` this phase —
 there is no emitter for it yet; edit/regenerate emitters arrive with Phase 8).
 `nextState` equals the current state because materialization does not advance the
 workflow. The event is validated before it is appended (validate-before-append,
 fail-closed), so a rejected materialization appends nothing.
+
+## 12.1 ExportArtifact (Phase 7)
+
+Canonical shared-schema entity (registered in `ENTITY_NAMES` / `EntityMap` /
+`validateEntity` / `runtimeValidationEntrypoints`). A downloadable, self-contained
+deliverable produced by deterministically exporting a persisted `Presentation` to a
+`.pptx`. The exporter consumes the **same `Presentation` model** the renderer does.
+
+```json
+{
+  "id": "pres_proj_001_export_1",
+  "projectId": "proj_001",
+  "format": "pptx",
+  "bytesBase64": "UEsDBBQ...",
+  "byteSize": 30219,
+  "sourcePresentationId": "pres_proj_001",
+  "createdBy": "ai",
+  "createdAt": ""
+}
+```
+
+`validateExportArtifact` is a **structural** check only: `format == "pptx"`, `byteSize`
+an integer `>= 1`, `bytesBase64` non-empty and matching the base64 charset, and all of
+`id`/`projectId`/`sourcePresentationId`/`createdBy`/`createdAt` present. It does **not**
+decode the base64 (an `ExportArtifact` is only ever service-constructed, never untrusted
+client input, and decoding megabytes on every `validateEntity` is wasteful). The
+`byteSize == len(decoded)` equality is a **service-side invariant** (the service sets
+`byteSize` and `bytesBase64` from the same bytes) asserted by export pytest, not the
+validator.
+
+- `id` is **deterministic**: `f"{presentation.id}_export_{n}"`, `n = len(project.exports)
+  + 1` (append-monotonic, no collision across repeat exports). `createdAt` is a
+  deterministic sentinel (never wall-clock) so repeat exports stay structurally identical.
+- **Geometry / placeholder mapping**: each `Element` maps to one pptx shape. Geometry
+  scales from the exporter's canvas convention `1280×720 px` (an **export mapping
+  convention, not a shared-schema/renderer contract**) to the **exact 16:9 EMU** slide
+  `12192000×6858000` (never `Inches(13.333)`), integer `Emu`, `zIndex` ascending add order,
+  off-canvas allowed to overflow, `width/height == 0` → a degenerate `Emu(0)` shape.
+  `text` → textbox (`str(content.text or "")`); **all 8 `ElementType`s are covered** —
+  every non-text type (`image`/`shape`/`icon`/`chart`/`table`/`diagram`/`group`, one
+  `else` branch) → a labeled placeholder rectangle. No real charts/images this phase.
+- **`sourcePresentationId` is best-effort provenance, not a revision-unique reference.**
+  `presentation.id = pres_{projectId}` is project-level stable, not revision-unique: after
+  a deep rollback that clears `presentation` and a re-materialization, a new presentation
+  reuses the **same id**, so an older `ExportArtifact.sourcePresentationId` then points at a
+  replaced presentation. Revision uniqueness is a later-phase (versioning) concern; the
+  artifact **bytes** are the authoritative, self-contained deliverable (the download stays
+  valid). `project.exports` is append-only history — workflow rollback never clears it.
 
 ## 13. Lock Model
 
