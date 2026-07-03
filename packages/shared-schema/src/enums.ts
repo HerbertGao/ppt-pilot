@@ -67,5 +67,6 @@ export const EVENT_TYPES = [
   "SLIDE_PLAN_GENERATED",
   "SLIDE_PLAN_UPDATED",
   "SLIDE_PLAN_CONFIRMED",
+  "SLIDES_MATERIALIZED",
 ] as const;
 export type EventType = (typeof EVENT_TYPES)[number];

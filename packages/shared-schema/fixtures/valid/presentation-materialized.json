@@ -1,0 +1,256 @@
+{
+  "entity": "Presentation",
+  "data": {
+    "id": "pres_materialized_001",
+    "projectId": "proj_materialized_001",
+    "title": "Quarterly Platform Roadmap",
+    "spec": {
+      "id": "spec_materialized_corporate",
+      "topic": "Quarterly Platform Roadmap",
+      "audience": "engineering leadership",
+      "purpose": "Align leadership on the next quarter of platform investments",
+      "durationMinutes": 20,
+      "slideCountTarget": 3,
+      "language": "en-US",
+      "tone": "confident",
+      "scene": "corporate",
+      "styleProfileId": "style_corporate_default",
+      "questionPolicy": {
+        "mode": "fast",
+        "sceneThreshold": 0.75,
+        "maxQuestions": 3
+      },
+      "riskNotes": [],
+      "constraints": [],
+      "sourceMaterials": [],
+      "confirmedByUser": true
+    },
+    "theme": {
+      "palette": {
+        "background": "#0B1F3A",
+        "surface": "#13294B",
+        "primary": "#4F9CF9",
+        "text": "#F5F7FA",
+        "muted": "#9AB0C7"
+      },
+      "fonts": {
+        "heading": "Inter, sans-serif",
+        "body": "Inter, sans-serif",
+        "mono": "JetBrains Mono, monospace"
+      },
+      "spacing": {
+        "xs": 4,
+        "sm": 8,
+        "md": 16,
+        "lg": 32,
+        "gutter": "5%"
+      }
+    },
+    "scene": "corporate",
+    "styleProfileId": "style_corporate_default",
+    "assets": [],
+    "slides": [
+      {
+        "id": "slide_0001",
+        "presentationId": "pres_materialized_001",
+        "index": 1,
+        "title": "Where the platform stands today",
+        "status": "planned",
+        "locked": false,
+        "plan": {
+          "slideId": "slide_0001",
+          "title": "Where the platform stands today",
+          "objective": "Ground the audience in the current baseline",
+          "keyMessage": "The platform is stable but nearing capacity limits",
+          "contentIntent": "State the current baseline and one supporting fact",
+          "visualIntent": "text",
+          "layoutSuggestion": "title-and-body",
+          "requiredAssets": [],
+          "riskNotes": []
+        },
+        "elements": [
+          {
+            "id": "el_0001_title",
+            "slideId": "slide_0001",
+            "type": "text",
+            "content": {
+              "kind": "title",
+              "text": "Where the platform stands today"
+            },
+            "x": 80,
+            "y": 60,
+            "width": 1120,
+            "height": 120,
+            "rotation": 0,
+            "zIndex": 1,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          },
+          {
+            "id": "el_0001_body",
+            "slideId": "slide_0001",
+            "type": "text",
+            "content": {
+              "kind": "body",
+              "text": "The platform is stable but nearing capacity limits."
+            },
+            "x": 80,
+            "y": 220,
+            "width": 1120,
+            "height": 400,
+            "rotation": 0,
+            "zIndex": 2,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          }
+        ],
+        "createdAt": "2026-07-01T00:00:00.000Z",
+        "updatedAt": "2026-07-01T00:00:00.000Z"
+      },
+      {
+        "id": "slide_0002",
+        "presentationId": "pres_materialized_001",
+        "index": 2,
+        "title": "Capacity trend over the last four quarters",
+        "status": "planned",
+        "locked": false,
+        "plan": {
+          "slideId": "slide_0002",
+          "title": "Capacity trend over the last four quarters",
+          "objective": "Show the growth pressure quantitatively",
+          "keyMessage": "Utilization has grown 60% year over year",
+          "contentIntent": "Present a trend chart with a short takeaway",
+          "visualIntent": "chart",
+          "layoutSuggestion": "title-and-visual",
+          "requiredAssets": [],
+          "riskNotes": []
+        },
+        "elements": [
+          {
+            "id": "el_0002_title",
+            "slideId": "slide_0002",
+            "type": "text",
+            "content": {
+              "kind": "title",
+              "text": "Capacity trend over the last four quarters"
+            },
+            "x": 80,
+            "y": 60,
+            "width": 1120,
+            "height": 120,
+            "rotation": 0,
+            "zIndex": 1,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          },
+          {
+            "id": "el_0002_chart",
+            "slideId": "slide_0002",
+            "type": "chart",
+            "content": {
+              "kind": "chart",
+              "placeholder": true,
+              "chartType": "line",
+              "caption": "Utilization has grown 60% year over year"
+            },
+            "x": 80,
+            "y": 220,
+            "width": 1120,
+            "height": 420,
+            "rotation": 0,
+            "zIndex": 2,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          }
+        ],
+        "createdAt": "2026-07-01T00:00:00.000Z",
+        "updatedAt": "2026-07-01T00:00:00.000Z"
+      },
+      {
+        "id": "slide_0003",
+        "presentationId": "pres_materialized_001",
+        "index": 3,
+        "title": "Proposed investment areas next quarter",
+        "status": "planned",
+        "locked": false,
+        "plan": {
+          "slideId": "slide_0003",
+          "title": "Proposed investment areas next quarter",
+          "objective": "Give a concrete plan the audience can approve",
+          "keyMessage": "Three investments unlock the next stage of scale",
+          "contentIntent": "List three investment areas with a supporting visual",
+          "visualIntent": "image",
+          "layoutSuggestion": "title-and-visual",
+          "requiredAssets": [],
+          "riskNotes": []
+        },
+        "elements": [
+          {
+            "id": "el_0003_title",
+            "slideId": "slide_0003",
+            "type": "text",
+            "content": {
+              "kind": "title",
+              "text": "Proposed investment areas next quarter"
+            },
+            "x": 80,
+            "y": 60,
+            "width": 1120,
+            "height": 120,
+            "rotation": 0,
+            "zIndex": 1,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          },
+          {
+            "id": "el_0003_body",
+            "slideId": "slide_0003",
+            "type": "text",
+            "content": {
+              "kind": "body",
+              "text": "Three investments unlock the next stage of scale."
+            },
+            "x": 80,
+            "y": 220,
+            "width": 620,
+            "height": 400,
+            "rotation": 0,
+            "zIndex": 2,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          },
+          {
+            "id": "el_0003_visual",
+            "slideId": "slide_0003",
+            "type": "shape",
+            "content": {
+              "kind": "placeholder",
+              "placeholderFor": "image",
+              "shape": "rectangle",
+              "caption": "Illustrative architecture diagram"
+            },
+            "x": 740,
+            "y": 220,
+            "width": 460,
+            "height": 400,
+            "rotation": 0,
+            "zIndex": 3,
+            "style": {},
+            "locked": false,
+            "metadata": {}
+          }
+        ],
+        "createdAt": "2026-07-01T00:00:00.000Z",
+        "updatedAt": "2026-07-01T00:00:00.000Z"
+      }
+    ],
+    "createdAt": "2026-07-01T00:00:00.000Z",
+    "updatedAt": "2026-07-01T00:00:00.000Z"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "entity": "ThemeTokens",
+  "data": {
+    "palette": {
+      "background": "#0B1F3A",
+      "surface": "#13294B",
+      "primary": "#4F9CF9",
+      "text": "#F5F7FA",
+      "muted": "#9AB0C7"
+    },
+    "fonts": {
+      "heading": "Inter, sans-serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "spacing": {
+      "xs": 4,
+      "sm": 8,
+      "md": 16,
+      "lg": 32,
+      "gutter": "5%"
+    }
+  }
+}

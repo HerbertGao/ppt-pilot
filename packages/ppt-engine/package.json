@@ -1,0 +1,28 @@
+{
+  "name": "@ppt-pilot/ppt-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Pure-function HTML preview renderer for PPTPilot structured slide models.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "fixtures",
+    "README.md"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "tsc -p tsconfig.build.json",
+    "test": "pnpm run build && node scripts/render-fixtures.mjs"
+  },
+  "dependencies": {
+    "@ppt-pilot/shared-schema": "workspace:*"
+  }
+}

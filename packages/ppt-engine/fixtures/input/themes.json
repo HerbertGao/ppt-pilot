@@ -1,0 +1,13 @@
+{
+  "note": "Two distinguishable ThemeTokens used to prove token→style mapping is deterministic and distinct.",
+  "themeA": {
+    "palette": { "background": "#0B1F3A", "text": "#F5F7FA", "primary": "#4F9CF9" },
+    "fonts": { "body": "Inter, sans-serif" },
+    "spacing": { "md": 16 }
+  },
+  "themeB": {
+    "palette": { "background": "#2A0B0B", "text": "#FFE8E8", "primary": "#F97066" },
+    "fonts": { "body": "Georgia, serif" },
+    "spacing": { "md": 24 }
+  }
+}

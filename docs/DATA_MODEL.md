@@ -37,6 +37,28 @@ ExportArtifact
 }
 ```
 
+### 3.1 ThemeTokens (Phase 6)
+
+`Presentation.theme` holds a `ThemeTokens` object — the base design tokens a renderer
+turns into CSS:
+
+```json
+{
+  "palette": { "background": "#0B1F3A", "primary": "#4F9CF9", "text": "#F5F7FA" },
+  "fonts": { "heading": "Inter, sans-serif", "body": "Inter, sans-serif" },
+  "spacing": { "sm": 8, "md": 16, "gutter": "5%" }
+}
+```
+
+- `palette`: `Record<string,string>`; `fonts`: `Record<string,string>`;
+  `spacing`: `Record<string,number|string>`. All three groups must be present and
+  non-empty (`validateThemeTokens`).
+- `ThemeTokens` is registered as its own entity (`ENTITY_NAMES` / `EntityMap` /
+  `validateEntity` / `runtimeValidationEntrypoints`). `validatePresentation` treats
+  `theme` **loosely** (any object), so the materializer validates the theme
+  explicitly via `validateEntity("ThemeTokens", theme)` **before** persisting — a
+  loose `theme` is not enough to guarantee the token contract.
+
 ## 4. Presentation Spec
 
 ```json
@@ -115,6 +137,49 @@ generated
 reviewed
 locked
 ```
+
+### 5.0 Slide / Element materialization (Phase 6)
+
+Phase 6 deterministically materializes a confirmed `SlidePlan[]` + confirmed
+`PresentationSpec` into a `Presentation` that passes `validateEntity("Presentation")`.
+No LLM, no network, no Asset this phase. Materialization semantics:
+
+- `presentation.id = pres_{projectId}`; `presentation.spec` embeds the confirmed
+  `PresentationSpec`; `presentation.scene == spec.scene`; `presentation.assets = []`.
+- Per slide: `slide.id == plan.slideId`, `slide.index` is 1-based, `slide.status =
+  "planned"`, `slide.title = plan.title ?? plan.keyMessage` (top-level non-empty), and
+  `slide.plan` is a **copy** of the source plan with `requiredAssets = []`.
+- Each slide carries a `title` text element, a `body` text placeholder, and — unless
+  the visual intent is `text` — one **visual placeholder** element whose `ElementType`
+  is mapped from `visualIntent`:
+
+  ```text
+  chart      -> chart
+  diagram    -> diagram
+  comparison -> shape
+  timeline   -> shape
+  image      -> shape   (image placeholder — see below)
+  text       -> (no visual element)
+  ```
+
+- **`image` maps to `shape` this phase** (`image -> shape` placeholder convention):
+  `validateElement` forces an `image` element to carry `content.assetId`, and there
+  are no Assets yet, so an `image` element would fail `validateSlide`. The placeholder
+  is a `shape` whose `content` annotates the intent (e.g. `placeholderFor: "image"`).
+  `image -> image` is reserved for the later Image-Agent phase that actually produces
+  Assets.
+- **`requiredAssets = []` / `assets = []` this phase.** The materialized `slide.plan`
+  copy empties `requiredAssets` (a non-empty value would fail the
+  `validatePresentation` `requiredAssets <-> $.assets` cross-check while `assets` is
+  empty). The **source** plan on `project.slidePlans` keeps its original
+  `requiredAssets` for a later Image phase.
+- Geometry comes from `layoutSuggestion` -> a base-layout token template; an unknown
+  layout falls to the default template with a soft note (never a hard failure).
+- `createdAt` / `updatedAt` are **deterministic** (a fixed sentinel, never wall-clock)
+  so repeat materialization is byte-identical and golden fixtures stay lockable.
+
+The whole `Presentation` (and the `ThemeTokens`) are validated **before** any
+persistent write; a failed validation persists nothing and appends no event.
 
 ## 5.1 Outline (Phase 5)
 
@@ -348,6 +413,7 @@ OUTLINE_CONFIRMED       (Phase 5)
 SLIDE_PLAN_GENERATED    (Phase 5)
 SLIDE_PLAN_UPDATED      (Phase 5)
 SLIDE_PLAN_CONFIRMED    (Phase 5)
+SLIDES_MATERIALIZED     (Phase 6)
 ```
 
 `validateEventPayload` is **fail-closed**: an `EVENT_TYPES` member with no
@@ -368,7 +434,14 @@ OUTLINE_CONFIRMED: { sectionCount, nextState }
 SLIDE_PLAN_GENERATED: { slideCount, slideIds, nextState }
 SLIDE_PLAN_UPDATED: { slideId, nextState }
 SLIDE_PLAN_CONFIRMED: { slideCount, nextState }
+SLIDES_MATERIALIZED: { slideCount (int, min 1), nextState }
 ```
+
+Phase 6 adds **only** `SLIDES_MATERIALIZED` (no `PRESENTATION_UPDATED` this phase —
+there is no emitter for it yet; edit/regenerate emitters arrive with Phase 8).
+`nextState` equals the current state because materialization does not advance the
+workflow. The event is validated before it is appended (validate-before-append,
+fail-closed), so a rejected materialization appends nothing.
 
 ## 13. Lock Model
 

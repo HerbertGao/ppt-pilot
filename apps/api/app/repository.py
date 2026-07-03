@@ -41,6 +41,10 @@ class StoredProject:
     outline: Any | None = None
     slidePlans: list[Any] | None = None
     slidePlansConfirmed: bool = False
+    # Phase 6 materialized Presentation, a validateEntity("Presentation")-normalized
+    # dict (matching `outline`/`spec`). None until materialize; nulled by the
+    # SLIDE_GENERATION->SLIDE_PLAN_REVIEW rollback so a stale model never survives.
+    presentation: Any | None = None
 
 
 class Repository(ABC):

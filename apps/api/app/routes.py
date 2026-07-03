@@ -23,6 +23,7 @@ from .outline import (
     read_outline,
     update_outline,
 )
+from .presentation import materialize, read_presentation
 from .projects import create_project
 from .repository import InMemoryRepository, Repository
 from .requirements import answer, confirm, discover, skip, update_profile
@@ -305,3 +306,20 @@ async def slide_plans_confirm_route(project_id: str, request: Request) -> dict[s
 @router.get("/projects/{project_id}/slides/plans")
 async def slide_plans_get_route(project_id: str) -> dict[str, Any]:
     return read_slide_plans(get_repository(), project_id)
+
+
+# --------------------------------------------------------------------------- #
+# Phase 6 slide-materialization surface. Deterministic + LLM-free; the action
+# never advances state. Any rejection has no side effect (validate-before-persist).
+# --------------------------------------------------------------------------- #
+
+
+@router.post("/projects/{project_id}/slides/materialize")
+async def slides_materialize_route(project_id: str, request: Request) -> dict[str, Any]:
+    await _json_object_body_lenient(request)  # parse precedes existence/domain
+    return materialize(get_repository(), project_id)
+
+
+@router.get("/projects/{project_id}/presentation")
+async def presentation_get_route(project_id: str) -> dict[str, Any]:
+    return read_presentation(get_repository(), project_id)

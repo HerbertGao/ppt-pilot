@@ -1,0 +1,21 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_slides_materialized_invalid_001",
+    "projectId": "proj_minimal_001",
+    "type": "SLIDES_MATERIALIZED",
+    "actor": "system",
+    "payload": {
+      "nextState": "SLIDE_GENERATION"
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "payload.slideCount",
+        "messageIncludes": "is required"
+      }
+    ]
+  }
+}

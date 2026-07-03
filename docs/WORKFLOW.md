@@ -140,6 +140,7 @@ forward:
   OUTLINE_GENERATION   -> OUTLINE_REVIEW           (Phase 5)
   OUTLINE_REVIEW       -> SLIDE_PLANNING           (Phase 5)
   SLIDE_PLANNING       -> SLIDE_PLAN_REVIEW        (Phase 5)
+  SLIDE_PLAN_REVIEW    -> SLIDE_GENERATION         (Phase 6)
 
 rollback:
   REQUIREMENT_REVIEW   -> REQUIREMENT_DISCOVERY    (Phase 2)
@@ -147,16 +148,21 @@ rollback:
   OUTLINE_REVIEW       -> OUTLINE_GENERATION       (Phase 5)
   SLIDE_PLANNING       -> OUTLINE_REVIEW           (Phase 5)
   SLIDE_PLAN_REVIEW    -> SLIDE_PLANNING           (Phase 5)
+  SLIDE_GENERATION     -> SLIDE_PLAN_REVIEW        (Phase 6)
 ```
 
-Edges past `SLIDE_PLAN_REVIEW` (into `SLIDE_GENERATION`) are left to Phase 6.
+Edges past `SLIDE_GENERATION` (into `EDITING` / `REVIEW` / `EXPORT_READY` /
+`EXPORTED`) are left to Phase 7+.
 
 Because forward edges have no content guard, a "transition-only" path can reach
-`OUTLINE_GENERATION` / `OUTLINE_REVIEW` / `SLIDE_PLANNING` / `SLIDE_PLAN_REVIEW`
-with **empty products**. Such content-free states are reachable but **inert**:
-each action endpoint guards its own content precondition (returning a stable
-`*_NOT_CONFIRMABLE` / `*_NOT_FOUND`), and every rollback clears downstream
-products **None-safe** (an already-`None` product is a no-op, never dereferenced).
+`OUTLINE_GENERATION` / `OUTLINE_REVIEW` / `SLIDE_PLANNING` / `SLIDE_PLAN_REVIEW` /
+`SLIDE_GENERATION` with **empty products**. Such content-free states are reachable
+but **inert**: each action endpoint guards its own content precondition (returning a
+stable `*_NOT_CONFIRMABLE` / `*_NOT_FOUND` / `SLIDES_NOT_MATERIALIZABLE`), and every
+rollback clears downstream products **None-safe** (an already-`None` product is a
+no-op, never dereferenced). In particular, `slides/materialize` in an empty
+`SLIDE_GENERATION` state rejects with `SLIDES_NOT_MATERIALIZABLE` rather than
+producing a bad model.
 
 Rollback downstream clearing (post-commit, in-memory attribute writes):
 
@@ -165,7 +171,14 @@ OUTLINE_GENERATION -> REQUIREMENT_REVIEW : clear outline + slidePlans, slidePlan
 OUTLINE_REVIEW     -> OUTLINE_GENERATION : if outline exists, confirmedByUser=false; clear slidePlans, slidePlansConfirmed=false
 SLIDE_PLANNING     -> OUTLINE_REVIEW     : clear slidePlans, slidePlansConfirmed=false
 SLIDE_PLAN_REVIEW  -> SLIDE_PLANNING     : keep slidePlans (regenerate overwrites), slidePlansConfirmed=false
+SLIDE_GENERATION   -> SLIDE_PLAN_REVIEW   : clear presentation (None-safe); keep slidePlans + slidePlansConfirmed (plans not voided)
 ```
+
+The `SLIDE_GENERATION -> SLIDE_PLAN_REVIEW` rollback clears `project.presentation`
+None-safe so re-materialization starts from a fresh model. The confirmed plans are
+**kept** (rolling back the presentation does not void the plans — the project is still
+a confirmed-plan state), unlike the deeper rollbacks that reset
+`slidePlansConfirmed`.
 
 Each successful transition appends one `WORKFLOW_STATE_CHANGED` event. Outline /
 slide-plan action endpoints (generate / update / confirm) **do not advance the

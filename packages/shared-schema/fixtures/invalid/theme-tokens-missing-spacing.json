@@ -1,0 +1,21 @@
+{
+  "entity": "ThemeTokens",
+  "data": {
+    "palette": {
+      "background": "#0B1F3A",
+      "primary": "#4F9CF9"
+    },
+    "fonts": {
+      "heading": "Inter, sans-serif",
+      "body": "Inter, sans-serif"
+    }
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "spacing",
+        "messageIncludes": "is required"
+      }
+    ]
+  }
+}

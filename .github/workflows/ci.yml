@@ -21,6 +21,7 @@ jobs:
     outputs:
       docs_openspec: ${{ steps.filter.outputs.docs_openspec }}
       shared_schema: ${{ steps.filter.outputs.shared_schema }}
+      ppt_engine: ${{ steps.filter.outputs.ppt_engine }}
       web: ${{ steps.filter.outputs.web }}
       api: ${{ steps.filter.outputs.api }}
       js_workspace: ${{ steps.filter.outputs.js_workspace }}
@@ -40,6 +41,7 @@ jobs:
 
           docs_openspec=false
           shared_schema=false
+          ppt_engine=false
           web=false
           api=false
           js_workspace=false
@@ -48,6 +50,7 @@ jobs:
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             docs_openspec=true
             shared_schema=true
+            ppt_engine=true
             web=true
             api=true
             js_workspace=true
@@ -75,6 +78,12 @@ jobs:
               case "${file}" in
                 packages/shared-schema/*)
                   shared_schema=true
+                  ;;
+              esac
+
+              case "${file}" in
+                packages/ppt-engine/*)
+                  ppt_engine=true
                   ;;
               esac
 
@@ -107,6 +116,13 @@ jobs:
           if [[ "${js_workspace}" == "true" ]]; then
             shared_schema=true
             web=true
+            ppt_engine=true
+          fi
+
+          # ppt-engine consumes @ppt-pilot/shared-schema, so a shared-schema
+          # change must re-run the renderer gate against the new model.
+          if [[ "${shared_schema}" == "true" ]]; then
+            ppt_engine=true
           fi
 
           if [[ "${ci_config}" == "true" ]]; then
@@ -116,6 +132,7 @@ jobs:
           {
             echo "docs_openspec=${docs_openspec}"
             echo "shared_schema=${shared_schema}"
+            echo "ppt_engine=${ppt_engine}"
             echo "web=${web}"
             echo "api=${api}"
             echo "js_workspace=${js_workspace}"
@@ -208,6 +225,38 @@ jobs:
       - name: Run API Python shared-schema smoke
         shell: bash
         run: PYTHONPATH=apps/api python3 -m app.shared_schema_smoke
+
+  ppt_engine:
+    name: ppt-engine gate
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.ppt_engine == 'true'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install JavaScript workspace
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@9 --activate
+          pnpm install --no-frozen-lockfile
+
+      - name: Typecheck and run renderer fixtures
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm --filter @ppt-pilot/shared-schema build
+          pnpm --filter @ppt-pilot/ppt-engine typecheck
+          pnpm --filter @ppt-pilot/ppt-engine test
 
   web:
     name: Web gate
@@ -340,6 +389,7 @@ jobs:
           required_markers = [
               "docs_openspec:",
               "shared_schema:",
+              "ppt_engine:",
               "web:",
               "api:",
               "ci_config:",
@@ -356,6 +406,7 @@ jobs:
       - changes
       - docs_openspec
       - shared_schema
+      - ppt_engine
       - web
       - api
       - ci_config
@@ -371,6 +422,7 @@ jobs:
             "${{ needs.changes.result }}" \
             "${{ needs.docs_openspec.result }}" \
             "${{ needs.shared_schema.result }}" \
+            "${{ needs.ppt_engine.result }}" \
             "${{ needs.web.result }}" \
             "${{ needs.api.result }}" \
             "${{ needs.ci_config.result }}"
@@ -389,6 +441,7 @@ jobs:
           - changes: ${{ needs.changes.result }}
           - docs/OpenSpec: ${{ needs.docs_openspec.result }}
           - shared-schema: ${{ needs.shared_schema.result }}
+          - ppt-engine: ${{ needs.ppt_engine.result }}
           - Web: ${{ needs.web.result }}
           - API: ${{ needs.api.result }}
           - CI config: ${{ needs.ci_config.result }}

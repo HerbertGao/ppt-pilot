@@ -19,8 +19,8 @@ from .shared_schema_constants import SharedSchemaConstants
 # state, which is reachable but inert — action endpoints guard their own content
 # preconditions and rollbacks clear downstream None-safe (design D4/D5).
 #
-# ponytail: SLIDE_PLAN_REVIEW has no forward edge yet — SLIDE_GENERATION and every
-# later edge are owned by Phase 6+, added when that content logic lands.
+# ponytail: SLIDE_GENERATION has no forward edge yet — EDITING/REVIEW/EXPORT_READY
+# and every later edge are owned by Phase 7+, added when that content logic lands.
 TRANSITION_EDGES: dict[str, set[str]] = {
     "NEW_PROJECT": {"REQUIREMENT_DISCOVERY"},
     "REQUIREMENT_DISCOVERY": {"REQUIREMENT_REVIEW"},
@@ -28,7 +28,8 @@ TRANSITION_EDGES: dict[str, set[str]] = {
     "OUTLINE_GENERATION": {"OUTLINE_REVIEW", "REQUIREMENT_REVIEW"},
     "OUTLINE_REVIEW": {"SLIDE_PLANNING", "OUTLINE_GENERATION"},
     "SLIDE_PLANNING": {"SLIDE_PLAN_REVIEW", "OUTLINE_REVIEW"},
-    "SLIDE_PLAN_REVIEW": {"SLIDE_PLANNING"},
+    "SLIDE_PLAN_REVIEW": {"SLIDE_PLANNING", "SLIDE_GENERATION"},
+    "SLIDE_GENERATION": {"SLIDE_PLAN_REVIEW"},
 }
 
 
@@ -125,3 +126,7 @@ def _clear_downstream_on_rollback(
     elif edge == ("SLIDE_PLAN_REVIEW", "SLIDE_PLANNING"):
         # Keep plans (regenerate overwrites); just void the confirmation.
         project.slidePlansConfirmed = False
+    elif edge == ("SLIDE_GENERATION", "SLIDE_PLAN_REVIEW"):
+        # Void the materialized presentation so re-materialize starts fresh; keep
+        # the confirmed plans (rolling back the presentation does not void them).
+        project.presentation = None

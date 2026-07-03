@@ -36,6 +36,7 @@ export const ENTITY_NAMES = [
   "Asset",
   "Version",
   "Event",
+  "ThemeTokens",
 ] as const;
 
 export type EntityName = (typeof ENTITY_NAMES)[number];
