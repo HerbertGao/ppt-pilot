@@ -65,11 +65,12 @@ def _wrong_state(message: str) -> InvalidStateTransitionError:
     return err
 
 
-def _theme_for(scene: str, style_profile_id: str) -> dict[str, Any]:
-    """Deterministic ThemeTokens derived from scene/styleProfile (design D3).
+def _theme_for(scene: str) -> dict[str, Any]:
+    """Deterministic ThemeTokens derived from scene (design D3).
 
     Kept small on purpose: one base theme whose primary accent varies by scene.
-    ponytail: single base palette; add per-scene palettes when visual polish matters.
+    ponytail: single base palette keyed on scene; styleProfile-based theming is
+    deferred to a later styling phase (re-add a styleProfile arg when it matters).
     """
 
     accent = {
@@ -252,7 +253,7 @@ def materialize(
 
     presentation_id = f"pres_{project.projectId}"
     scene = spec["scene"]
-    theme = _theme_for(scene, spec.get("styleProfileId", ""))
+    theme = _theme_for(scene)
     presentation = {
         "id": presentation_id,
         "projectId": project.projectId,

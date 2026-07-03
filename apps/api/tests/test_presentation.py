@@ -181,9 +181,11 @@ def test_wrong_state_is_invalid_state_transition(client, repo):
 
 
 def test_validation_failure_is_400_zero_persist(client, repo):
-    # An empty keyMessage yields an empty slide.title -> validatePresentation rejects.
-    bad_plans = [_plan("slide-0001", key_message="")]
-    pid = _project_in_slide_generation(client, repo, plans=bad_plans)
+    # Plans pass the slideId/keyMessage guard; a confirmed-but-malformed spec
+    # (missing required `purpose`) makes the embedded PresentationSpec fail
+    # validatePresentation -> exercises the validate-before-persist branch.
+    bad_spec = {k: v for k, v in _SPEC.items() if k != "purpose"}
+    pid = _project_in_slide_generation(client, repo, spec=bad_spec)
     resp = client.post(f"/api/projects/{pid}/slides/materialize", json={})
     assert resp.status_code == 400 and resp.json()["code"] == "SLIDE_VALIDATION_ERROR"
     # Zero persist: no presentation stored, no event appended.
