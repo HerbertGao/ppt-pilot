@@ -132,7 +132,7 @@ def _rgb(value: Any, default: str) -> RGBColor:
 
     try:
         return RGBColor.from_string(str(value).lstrip("#"))
-    except Exception:
+    except Exception:  # noqa: BLE001 - any parse failure must fall back, never raise (D5)
         return RGBColor.from_string(default)
 
 
@@ -148,7 +148,7 @@ def _style_text_frame(text_frame: Any, color: RGBColor, font_name: str) -> None:
             for run in paragraph.runs:
                 run.font.color.rgb = color
                 run.font.name = font_name
-    except Exception:
+    except Exception:  # noqa: BLE001, S110 - best-effort styling must not abort export (D5)
         pass
 
 
@@ -183,7 +183,7 @@ def _build_pptx(presentation: dict[str, Any]) -> bytes:
         try:
             slide.background.fill.solid()
             slide.background.fill.fore_color.rgb = background_color
-        except Exception:
+        except Exception:  # noqa: BLE001, S110 - best-effort background fill must not abort export (D5)
             pass
 
         elements = slide_model.get("elements") or []
@@ -218,7 +218,7 @@ def _build_pptx(presentation: dict[str, Any]) -> bytes:
                     shape.fill.solid()
                     shape.fill.fore_color.rgb = fill_color
                     shape.line.color.rgb = stroke_color
-                except Exception:
+                except Exception:  # noqa: BLE001, S110 - best-effort placeholder styling must not abort export (D5)
                     pass
                 shape.text_frame.text = f"[{element_type}]"
                 _style_text_frame(shape.text_frame, text_color, body_font)
