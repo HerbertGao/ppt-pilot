@@ -1,0 +1,15 @@
+{
+  "entity": "Outline",
+  "data": {
+    "sections": [],
+    "confirmedByUser": false
+  },
+  "expect": {
+    "errors": [
+      {
+        "pathIncludes": "sections",
+        "messageIncludes": "at least one section"
+      }
+    ]
+  }
+}

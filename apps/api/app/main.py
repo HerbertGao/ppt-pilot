@@ -246,6 +246,53 @@ def _selfcheck() -> None:
         assert status == 200 and data["status"] == "REQUIREMENT_DISCOVERY", data
         assert len(get_repository().list_events(pid)) == 3
 
+        # Phase 5: the outline/slide-planning forward chain is walkable and each
+        # step appends exactly one event (transition-only, no generate).
+        p2_status, p2_data = await call("POST", "/api/projects", b"{}")
+        assert p2_status == 200, p2_data
+        p2 = p2_data["projectId"]
+        for to in ("REQUIREMENT_DISCOVERY", "REQUIREMENT_REVIEW"):
+            await call("POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode())
+        chain = ["OUTLINE_GENERATION", "OUTLINE_REVIEW", "SLIDE_PLANNING", "SLIDE_PLAN_REVIEW"]
+        for i, to in enumerate(chain):
+            before = len(get_repository().list_events(p2))
+            status, data = await call(
+                "POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode()
+            )
+            assert status == 200 and data["status"] == to, (to, status, data)
+            assert len(get_repository().list_events(p2)) == before + 1, (to, "event count")
+        assert get_repository().get_project(p2).state == "SLIDE_PLAN_REVIEW"
+
+        # SLIDE_PLAN_REVIEW -> SLIDE_GENERATION is Phase 6+; still illegal, no side effect.
+        before = len(get_repository().list_events(p2))
+        status, data = await call(
+            "POST", f"/api/projects/{p2}/transitions", b'{"to":"SLIDE_GENERATION"}'
+        )
+        assert status == 409 and data["code"] == "INVALID_STATE_TRANSITION", data
+        assert get_repository().get_project(p2).state == "SLIDE_PLAN_REVIEW"
+        assert len(get_repository().list_events(p2)) == before
+
+        # None-safe rollback: reached SLIDE_PLAN_REVIEW without ever generating, so
+        # outline/slidePlans are empty. Rolling back down the chain must not crash on
+        # the None artifacts and must reset slidePlansConfirmed.
+        for to in ("SLIDE_PLANNING", "OUTLINE_REVIEW", "OUTLINE_GENERATION", "REQUIREMENT_REVIEW"):
+            status, data = await call(
+                "POST", f"/api/projects/{p2}/transitions", _json.dumps({"to": to}).encode()
+            )
+            assert status == 200 and data["status"] == to, (to, status, data)
+        proj = get_repository().get_project(p2)
+        assert proj.outline is None and proj.slidePlans is None, proj
+        assert proj.slidePlansConfirmed is False, proj
+
+        # Cross-level forward jump REQUIREMENT_REVIEW -> SLIDE_PLANNING is illegal.
+        before = len(get_repository().list_events(p2))
+        status, data = await call(
+            "POST", f"/api/projects/{p2}/transitions", b'{"to":"SLIDE_PLANNING"}'
+        )
+        assert status == 409 and data["code"] == "INVALID_STATE_TRANSITION", data
+        assert get_repository().get_project(p2).state == "REQUIREMENT_REVIEW"
+        assert len(get_repository().list_events(p2)) == before
+
         # /health unchanged.
         status, data = await call("GET", "/health")
         assert status == 200 and data["status"] == "ok", data

@@ -20,6 +20,8 @@ PROMPT_FILES = {
     "requirement_gap": "requirement_gap.txt",
     "question": "question.txt",
     "spec_builder": "spec_builder.txt",
+    "outline": "outline.txt",
+    "slide_planner": "slide_planner.txt",
 }
 
 

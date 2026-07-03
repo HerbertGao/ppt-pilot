@@ -154,7 +154,9 @@ def test_skip_unknown_question_not_found(client, repo, mock_llm):
     assert resp.status_code == 404 and resp.json()["code"] == "QUESTION_NOT_FOUND"
 
 
-def test_confirm_sets_flag_keeps_review_and_forward_edge_absent(client, repo, mock_llm):
+def test_confirm_sets_flag_keeps_review_and_forward_edge_needs_explicit_transition(
+    client, repo, mock_llm
+):
     pid = _new_project_in_discovery(client)
     client.post(f"/api/projects/{pid}/requirements/discover", json={})
     _to_review(client, pid)
@@ -165,14 +167,16 @@ def test_confirm_sets_flag_keeps_review_and_forward_edge_absent(client, repo, mo
     assert data["confirmed"] is True
     assert data["nextState"] == "REQUIREMENT_REVIEW"
     assert data["presentationSpecId"]
+    # Confirm itself does NOT auto-advance out of REVIEW (approval gate).
     assert repo.get_project(pid).state == "REQUIREMENT_REVIEW"
     assert repo.list_events(pid)[-1]["type"] == "PRESENTATION_SPEC_CONFIRMED"
 
-    # Forward edge to OUTLINE_GENERATION still does not exist post-confirm.
+    # Phase 5: the forward edge to OUTLINE_GENERATION now EXISTS but must be driven
+    # by an explicit transition (confirm alone never advanced state).
     resp = client.post(
         f"/api/projects/{pid}/transitions", json={"to": "OUTLINE_GENERATION"}
     )
-    assert resp.status_code == 409 and resp.json()["code"] == "INVALID_STATE_TRANSITION"
+    assert resp.status_code == 200 and resp.json()["status"] == "OUTLINE_GENERATION"
 
 
 def test_confirm_requires_review_state(client, repo, mock_llm):

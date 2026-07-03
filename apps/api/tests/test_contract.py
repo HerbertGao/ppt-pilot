@@ -169,12 +169,13 @@ def test_known_state_illegal_edge_rejected_no_side_effect(client, repo):
 
 
 def test_late_stage_edge_needing_content_is_illegal(client, repo):
-    # 场景:进入需要内容的后段状态不属于本期合法边
+    # 场景:跨级前向跳转仍非法（Phase 5: REQUIREMENT_REVIEW->OUTLINE_GENERATION is now
+    # legal, so the "still-illegal" boundary is a cross-level jump that skips outline).
     pid = _create(client, {}).json()["projectId"]
     _transition(client, pid, "REQUIREMENT_DISCOVERY")
     _transition(client, pid, "REQUIREMENT_REVIEW")
     events_before = len(repo.list_events(pid))
-    resp = _transition(client, pid, "OUTLINE_GENERATION")
+    resp = _transition(client, pid, "SLIDE_PLANNING")
     assert resp.status_code == 409
     assert resp.json()["code"] == "INVALID_STATE_TRANSITION"
     assert repo.get_project(pid).state == "REQUIREMENT_REVIEW"
@@ -388,6 +389,44 @@ def test_phase3_error_codes_map_to_unified_envelope_no_side_effect(
     assert data["code"] == code
     assert isinstance(data["details"], dict)
     # No persistent side effect on a failed request.
+    assert _project_count(repo) == 0
+
+
+@pytest.mark.parametrize(
+    "error_name,status,error,code",
+    [
+        ("OutlineValidationError", 400, "VALIDATION_ERROR", "OUTLINE_VALIDATION_ERROR"),
+        ("OutlineNotFoundError", 404, "NOT_FOUND", "OUTLINE_NOT_FOUND"),
+        ("OutlineNotConfirmableError", 409, "STATE_ERROR", "OUTLINE_NOT_CONFIRMABLE"),
+        ("SlidePlanValidationError", 400, "VALIDATION_ERROR", "SLIDE_PLAN_VALIDATION_ERROR"),
+        ("SlidePlanNotFoundError", 404, "NOT_FOUND", "SLIDE_PLAN_NOT_FOUND"),
+        ("SlidePlanNotConfirmableError", 409, "STATE_ERROR", "SLIDE_PLAN_NOT_CONFIRMABLE"),
+    ],
+)
+def test_phase5_error_codes_map_to_unified_envelope_no_side_effect(
+    monkeypatch, repo, error_name, status, error, code
+):
+    import app.errors as errors_module
+    import app.routes as routes_module
+    from app.main import app
+    from starlette.testclient import TestClient
+
+    exc_cls = getattr(errors_module, error_name)
+
+    def _raise(*_args, **_kwargs):
+        raise exc_cls("boom")
+
+    monkeypatch.setattr(routes_module, "create_project", _raise)
+    client = TestClient(app)
+    resp = client.post("/api/projects", json={})
+
+    assert resp.status_code == status, resp.text
+    data = resp.json()
+    assert set(data) >= {"error", "code", "details"}
+    assert "detail" not in data
+    assert data["error"] == error
+    assert data["code"] == code
+    assert isinstance(data["details"], dict)
     assert _project_count(repo) == 0
 
 

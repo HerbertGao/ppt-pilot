@@ -9,7 +9,8 @@
 - 已完成并归档：`Phase 2`（后端 API 与工作流状态机），归档件位于 `openspec/changes/archive/2026-07-02-phase-2-api-skeleton-and-workflow-state`；已合并 PR #9
 - 已完成并归档：`Phase 3`（需求澄清与 Spec Builder），归档件位于 `openspec/changes/archive/2026-07-02-phase-3-requirement-discovery-and-spec-builder`；已合并 PR #10。需求发现/作答/跳过/确认与 `PATCH .../profile` 已实现，确认停留在 `REQUIREMENT_REVIEW`（不推进状态），真实 LLM 链路已验证（OpenRouter/DeepSeek）
 - 已完成并归档：`Phase 4`（前端工作流壳），归档件位于 `openspec/changes/archive/2026-07-02-phase-4-frontend-workflow-shell`；已合并 PR #12。Next.js 立项、需求澄清、Spec review 页与状态壳已落地，前端工作流规则（前向转移驱动、复核页非 REVIEW 即重定向、改 profile rollback-first）与 mock `/api` 的组件/交互测试（Vitest 40 项）均已实现
-- 当前后续：启动 `Phase 5`（大纲与 Slide Plan）
+- 已实现，待归档：`Phase 5`（大纲与 Slide Plan）。Outline Agent、Slide Planner Agent、大纲/规划 HTTP 端点（generate/update/confirm/get）、`REQUIREMENT_REVIEW→OUTLINE_GENERATION→OUTLINE_REVIEW→SLIDE_PLANNING→SLIDE_PLAN_REVIEW` 前向链与回退边（None-safe 清空下游）、6 个新事件类型、`Outline` 实体与 `VisualIntent` 枚举均已落地；后端 pytest 与 `--selfcheck` 全绿，shared-schema fixtures 通过
+- 当前后续：归档 `phase-5-outline-and-slide-planning` 后启动 `Phase 6`
 - AI 首次进入：`Phase 3`（文本 LLM，走 OpenRouter，藏在 `LLMProvider` 接口后）；Phase 3–8 只需文本 LLM
 - 文生图（`ImageProvider`，第三方 API）推迟到 `Phase 9`，与 `LLMProvider` 并列，选型到 Phase 9 再定。详见 `docs/ARCHITECTURE.md` §5 Model Providers
 - 已废弃：旧 `phase-1-requirement-discovery-mvp` 提案
@@ -24,7 +25,7 @@
 | Phase 2 | 后端 API 与工作流状态机 | FastAPI、项目生命周期、状态流转、事件写入、错误约定 | 已完成并归档 | `phase-2-api-skeleton-and-workflow-state` | 创建项目与状态推进可运行；非法状态不写持久状态 |
 | Phase 3 | 需求澄清与 Spec Builder | Requirement Discovery Agent、问题策略、跳过风险、Spec 确认 | 已完成并归档 | `phase-3-requirement-discovery-and-spec-builder` | 模糊输入可生成可确认的 `PresentationSpec` |
 | Phase 4 | 前端工作流壳 | Next.js 立项、需求澄清、Spec review、状态展示 | 已完成并归档 | `phase-4-frontend-workflow-shell` | 用户可在 Web 中完成创建、问答与 Spec 确认 |
-| Phase 5 | 大纲与 Slide Plan | Outline Agent、Slide Planner Agent、可编辑结构 | 未启动 | `phase-5-outline-and-slide-planning` | 确认 Spec 后可生成并编辑 outline/slide plan |
+| Phase 5 | 大纲与 Slide Plan | Outline Agent、Slide Planner Agent、可编辑结构 | 已实现，待归档 | `phase-5-outline-and-slide-planning` | 确认 Spec 后可生成并编辑 outline/slide plan |
 | Phase 6 | HTML 预览与 Slide Model | 结构化 slide JSON、主题 token、HTML preview renderer | 未启动 | `phase-6-html-preview-and-slide-model` | 同一结构化模型可渲染预览 |
 | Phase 7 | PPTX 导出 MVP | PPTX export、下载、HTML/PPTX 一致性检查 | 未启动 | `phase-7-pptx-export-mvp` | 可从结构化数据导出 PPTX |
 | Phase 8 | Canvas 编辑与锁定 | 画布编辑、元素编辑、slide/element lock、锁定写保护 | 未启动 | `phase-8-canvas-editing-and-lock-model` | 用户可微调；AI 写入不能修改锁定目标 |
@@ -35,8 +36,8 @@
 
 - 当前不应继续旧提案：`phase-1-requirement-discovery-mvp`
 - 已归档提案：`phase-1-foundation-monorepo-and-shared-schema`、`phase-2-api-skeleton-and-workflow-state`、`phase-3-requirement-discovery-and-spec-builder`、`phase-4-frontend-workflow-shell`
-- 进行中的 change：无（下一步启动 `Phase 5`）
-- 下一提案：`phase-5-outline-and-slide-planning`
+- 进行中的 change：`phase-5-outline-and-slide-planning`（已实现，待主控验收并归档）
+- 下一提案：`phase-6-html-preview-and-slide-model`
 - 旧提案中的场景、风格、fast/thorough、跳过问题等内容保留为产品方向，但实现归属调整到 Phase 3
 
 ## 4. Phase 1 推荐 TODO

@@ -106,6 +106,92 @@ class MockLLMProvider:
         return value
 
 
+def mock_outline_response(
+    messages: Sequence[Message] | None = None,
+    *,
+    model: str | None = None,
+    response_format: Mapping[str, Any] | None = None,
+) -> str:
+    """Deterministic canned Outline Agent response for CI (no network).
+
+    Returns only `{"sections": [...]}` — the runtime injects `confirmedByUser`.
+    Wire it into `MockLLMProvider(mock_outline_response)` (or pass no args to get
+    the raw JSON string). Additive: does not change any other agent's mock path or
+    the real OpenRouter provider.
+    """
+
+    return json.dumps(
+        {
+            "sections": [
+                {
+                    "title": "Introduction",
+                    "purpose": "Set context and state the goal",
+                    "estimatedSlides": 2,
+                },
+                {
+                    "title": "Core Content",
+                    "purpose": "Explain the main ideas in order",
+                    "estimatedSlides": 3,
+                },
+                {
+                    "title": "Summary",
+                    "purpose": "Recap and give a call to action",
+                    "estimatedSlides": 1,
+                },
+            ]
+        }
+    )
+
+
+def mock_slide_plan_response(
+    messages: Sequence[Message] | None = None,
+    *,
+    model: str | None = None,
+    response_format: Mapping[str, Any] | None = None,
+) -> str:
+    """Deterministic canned Slide Planner response for CI (no network).
+
+    Reads the confirmed outline out of the user message and emits `estimatedSlides`
+    pages per section, section-grouped (so counts match the outline and no mismatch
+    riskNote is added by default) — deterministic given the same outline. The runtime
+    assigns slideIds and validates. Additive: does not touch `mock_outline_response`
+    or the real OpenRouter provider.
+    """
+
+    sections: list[dict[str, Any]] = []
+    for message in messages or ():
+        if message.get("role") != "user":
+            continue
+        try:
+            payload = json.loads(message.get("content", ""))
+        except (json.JSONDecodeError, TypeError):
+            continue
+        outline = payload.get("outline") if isinstance(payload, dict) else None
+        if isinstance(outline, dict) and isinstance(outline.get("sections"), list):
+            sections = outline["sections"]  # first payload-shaped user msg wins
+            break
+
+    out_sections: list[dict[str, Any]] = []
+    for section_index, section in enumerate(sections):
+        title = section.get("title", f"Section {section_index + 1}")
+        count = section.get("estimatedSlides", 1)
+        slides = [
+            {
+                "objective": f"Cover {title} (page {page_index + 1})",
+                "keyMessage": f"Key point {page_index + 1} of {title}",
+                "contentIntent": f"Explain {title}",
+                "visualIntent": "text",
+                "layoutSuggestion": "title-and-body",
+                "requiredAssets": [],
+                "riskNotes": [],
+            }
+            for page_index in range(count if isinstance(count, int) and count > 0 else 1)
+        ]
+        out_sections.append({"slides": slides})
+
+    return json.dumps({"sections": out_sections})
+
+
 class OpenRouterProvider:
     """`LLMProvider` backed by OpenRouter's chat-completions API.
 
@@ -237,4 +323,6 @@ __all__ = [
     "MockLLMProvider",
     "OpenRouterProvider",
     "build_llm_provider",
+    "mock_outline_response",
+    "mock_slide_plan_response",
 ]

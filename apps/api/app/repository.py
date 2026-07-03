@@ -34,6 +34,13 @@ class StoredProject:
     # None until confirm; nulled by the REQUIREMENT_REVIEW->REQUIREMENT_DISCOVERY
     # rollback so a stale confirmed spec never survives a profile change.
     spec: Any = None
+    # Phase 5 structured artifacts, held as validated dicts (matching `spec`).
+    # `outline` carries its own confirmedByUser key; slide plans have no schema-level
+    # confirm field, so `slidePlansConfirmed` carries "plans confirmed" at the project
+    # level. All nulled/reset by the None-safe rollback clears in execute_transition.
+    outline: Any | None = None
+    slidePlans: list[Any] | None = None
+    slidePlansConfirmed: bool = False
 
 
 class Repository(ABC):

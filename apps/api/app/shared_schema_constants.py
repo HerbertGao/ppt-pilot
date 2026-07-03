@@ -34,7 +34,8 @@ NODE_CONSTANTS_SCRIPT = r"""
 import { pathToFileURL } from "node:url";
 
 const entrypoint = process.argv[1];
-const sharedSchema = await import(pathToFileURL(entrypoint).href);
+const entrypointUrl = pathToFileURL(entrypoint).href;
+const sharedSchema = await import(entrypointUrl);
 
 const profileSceneMap = {};
 for (const [id, profile] of Object.entries(sharedSchema.BUILT_IN_STYLE_PROFILES)) {
@@ -52,6 +53,7 @@ process.stdout.write(
     defaultFastSceneThresholdByScene: sharedSchema.DEFAULT_FAST_SCENE_THRESHOLD_BY_SCENE,
     thoroughMinSceneThreshold: sharedSchema.THOROUGH_MIN_SCENE_THRESHOLD,
     defaultMaxQuestionsByMode: sharedSchema.DEFAULT_MAX_QUESTIONS_BY_MODE,
+    maxTotalSlidePlans: sharedSchema.MAX_TOTAL_SLIDE_PLANS,
   }),
 );
 """
@@ -73,6 +75,8 @@ class SharedSchemaConstants:
     thorough_min_scene_threshold: float
     # mode -> max questions, from DEFAULT_MAX_QUESTIONS_BY_MODE
     default_max_questions_by_mode: dict[str, int]
+    # total slide-plan upper bound, from MAX_TOTAL_SLIDE_PLANS
+    max_total_slide_plans: int
 
 
 def load_shared_schema_constants() -> SharedSchemaConstants:
@@ -129,6 +133,7 @@ def load_shared_schema_constants() -> SharedSchemaConstants:
         default_fast_scene_threshold_by_scene=dict(raw["defaultFastSceneThresholdByScene"]),
         thorough_min_scene_threshold=float(raw["thoroughMinSceneThreshold"]),
         default_max_questions_by_mode=dict(raw["defaultMaxQuestionsByMode"]),
+        max_total_slide_plans=int(raw["maxTotalSlidePlans"]),
     )
 
 

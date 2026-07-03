@@ -1,0 +1,20 @@
+{
+  "entity": "Outline",
+  "data": {
+    "id": "outline_001",
+    "sections": [
+      {
+        "title": "Why butterflies fascinate us",
+        "purpose": "Open with a relatable hook",
+        "estimatedSlides": 2
+      },
+      {
+        "title": "The four lifecycle stages",
+        "purpose": "Explain egg, larva, pupa, adult",
+        "estimatedSlides": 4
+      }
+    ],
+    "confirmedByUser": false,
+    "riskNotes": []
+  }
+}

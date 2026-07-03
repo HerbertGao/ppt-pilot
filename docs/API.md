@@ -125,7 +125,7 @@ Response:
 
 Notes:
 
-- 仅驱动本期合法边：前向 `NEW_PROJECT → REQUIREMENT_DISCOVERY → REQUIREMENT_REVIEW`，回退 `REQUIREMENT_REVIEW → REQUIREMENT_DISCOVERY`。`OUTLINE_GENERATION` 及之后的边留待后续阶段。
+- 合法边：前向 `NEW_PROJECT → REQUIREMENT_DISCOVERY → REQUIREMENT_REVIEW`（Phase 2），Phase 5 追加 `REQUIREMENT_REVIEW → OUTLINE_GENERATION → OUTLINE_REVIEW → SLIDE_PLANNING → SLIDE_PLAN_REVIEW` 前向链及各自的回退边（见 §4/§5 与 `docs/WORKFLOW.md`）。`SLIDE_PLAN_REVIEW` 之后的边留待 Phase 6。转移保持 LLM-free 且结构化（前向边不加内容守卫）；回退边 None-safe 清空对应下游产物。
 - 每次成功转移追加一条 `WORKFLOW_STATE_CHANGED` 事件（`actor=user`，`payload={previousState, nextState}`，见 Data Model）。
 - 错误码：未知状态字符串 → `INVALID_WORKFLOW_STATE`；已知状态但非法邻接边 → `INVALID_STATE_TRANSITION`；项目不存在 → `PROJECT_NOT_FOUND`；缺失/畸形请求体或缺 `to` → `INVALID_REQUEST_BODY`（见 §2.4）。
 - 任一失败路径都不改状态、不追加事件。
@@ -187,13 +187,15 @@ Notes:
 错误分类 → 错误码映射（稳定且明确）：
 
 ```text
-VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY | SPEC_VALIDATION_ERROR   (HTTP 400)
-STATE_ERROR      -> INVALID_STATE_TRANSITION | SPEC_NOT_CONFIRMABLE                                                                   (HTTP 409)
-NOT_FOUND        -> PROJECT_NOT_FOUND | QUESTION_NOT_FOUND                                                                            (HTTP 404)
-UPSTREAM_ERROR   -> LLM_PROVIDER_ERROR                                                                                                (HTTP 502)
+VALIDATION_ERROR -> INVALID_SCENE | STYLE_PROFILE_MISMATCH | INVALID_WORKFLOW_STATE | INVALID_REQUEST_BODY | SPEC_VALIDATION_ERROR | OUTLINE_VALIDATION_ERROR | SLIDE_PLAN_VALIDATION_ERROR   (HTTP 400)
+STATE_ERROR      -> INVALID_STATE_TRANSITION | SPEC_NOT_CONFIRMABLE | OUTLINE_NOT_CONFIRMABLE | SLIDE_PLAN_NOT_CONFIRMABLE                                                                          (HTTP 409)
+NOT_FOUND        -> PROJECT_NOT_FOUND | QUESTION_NOT_FOUND | OUTLINE_NOT_FOUND | SLIDE_PLAN_NOT_FOUND                                                                                                (HTTP 404)
+UPSTREAM_ERROR   -> LLM_PROVIDER_ERROR                                                                                                                                                             (HTTP 502)
 ```
 
 Phase 3 新增码：`SPEC_VALIDATION_ERROR`（Spec 未过 schema 校验）、`QUESTION_NOT_FOUND`（未知 `questionId`）、`SPEC_NOT_CONFIRMABLE`（确认前置状态不满足，或确认后未回退即改 profile）、`LLM_PROVIDER_ERROR`（`LLMProvider` 上游/超时失败，映射为 HTTP 502，不泄漏框架默认体）。
+
+Phase 5 新增码（均为既有基类子类，复用既有分组映射）：`OUTLINE_VALIDATION_ERROR` / `SLIDE_PLAN_VALIDATION_ERROR`（产物未过 schema 校验，400）、`OUTLINE_NOT_CONFIRMABLE`（已在 `OUTLINE_GENERATION` 但 Spec 未确认或为 None，409）、`SLIDE_PLAN_NOT_CONFIRMABLE`（大纲未确认或为 None，409）、`OUTLINE_NOT_FOUND` / `SLIDE_PLAN_NOT_FOUND`（confirm/GET 无产物，或规划为空，404）。**在错误的状态下调用大纲/规划动作端点**（与内容前置无关）判为 `INVALID_STATE_TRANSITION`（409）；动作端点没有 `to` 语义，故抛出点清除默认 `details.field="to"`（该字段返回为空）。
 
 框架原生错误（畸形 JSON / 字段类型错误触发的 `RequestValidationError`，以及 `HTTPException`）经异常处理器映射为同一结构（`error=VALIDATION_ERROR`、`code=INVALID_REQUEST_BODY`），不返回 FastAPI 默认的 `detail` 数组。
 
@@ -359,7 +361,11 @@ Notes:
 - confirm 仅在 `state == REQUIREMENT_REVIEW` 时允许，否则返回 `SPEC_NOT_CONFIRMABLE`（见 §2.4）。
 - Spec 未通过 schema 校验时返回 `SPEC_VALIDATION_ERROR`（见 §2.4），不置位确认、不追加事件。
 
-## 4. Outline APIs (Roadmap Draft)
+## 4. Outline APIs (Phase 5 implemented)
+
+大纲由 Outline Agent（隐藏在 `LLMProvider` 后，CI 默认走确定性 mock）从**已确认**的 `PresentationSpec` 生成。动作端点**不自行推进工作流状态**（沿用 Phase 2/3，前向转移由 `POST /transitions` 驱动）。所有接口沿用 §2.4 统一错误约定；被拒绝的请求不改状态、不追加事件。
+
+`Outline` 结构：`{ id?, sections: [{ title, purpose, estimatedSlides }], confirmedByUser, riskNotes? }`。section 至少 1 项，每 section `estimatedSlides ≥ 1`，section 数 ≤ 上限（`validation-constants` 暴露）。`confirmedByUser` 为 runtime 拥有字段（服务层注入，忽略请求体传入值）。
 
 ### Generate Outline
 
@@ -367,11 +373,19 @@ Notes:
 POST /api/projects/{projectId}/outline/generate
 ```
 
+- 前置：`state == OUTLINE_GENERATION` 且 `spec` 已确认（`spec is not None and spec.confirmedByUser`，None-safe）。
+- 成功返回完整 `Outline`（`confirmedByUser=false`），追加 `OUTLINE_GENERATED`（payload `sectionCount` + `nextState`）。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`；Spec 未确认或为 None → `OUTLINE_NOT_CONFIRMABLE`；生成产物校验不过（有界修复耗尽）→ `OUTLINE_VALIDATION_ERROR`；`LLMProvider` 上游失败 → `LLM_PROVIDER_ERROR`。
+
 ### Update Outline
 
 ```http
 PUT /api/projects/{projectId}/outline
 ```
+
+- 前置：`state ∈ {OUTLINE_GENERATION, OUTLINE_REVIEW}`；请求体过 `Outline` 校验。
+- 人工整份替换大纲；服务强制 `confirmedByUser=false`（编辑作废确认）。成功追加 `OUTLINE_UPDATED`（payload `sectionCount` + `nextState`）。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`；校验不过 → `OUTLINE_VALIDATION_ERROR`（无副作用）。
 
 ### Confirm Outline
 
@@ -379,7 +393,23 @@ PUT /api/projects/{projectId}/outline
 POST /api/projects/{projectId}/outline/confirm
 ```
 
-## 5. Slide Plan APIs (Roadmap Draft)
+- 前置：`state == OUTLINE_REVIEW` 且大纲存在。置 `confirmedByUser=true`，**不推进状态**，追加 `OUTLINE_CONFIRMED`（payload `sectionCount` + `nextState`）。
+- 重复确认**重放安全**（非严格幂等）：再次调用仍 200 并再追加一条 `OUTLINE_CONFIRMED`。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`；无大纲 → `OUTLINE_NOT_FOUND`。
+
+### Get Outline
+
+```http
+GET /api/projects/{projectId}/outline
+```
+
+- 读回持久化的完整 `Outline`；无副作用。无大纲 → `OUTLINE_NOT_FOUND`。
+
+## 5. Slide Plan APIs (Phase 5 implemented)
+
+逐页 `SlidePlan` 由 Slide Planner Agent 从**已确认**的大纲生成。`slideId` 由**服务层**确定性赋值（`slide-0001` 按序、集合内唯一），非 LLM。规划确认态存于项目级 `slidePlansConfirmed`（`SlidePlan` 无 schema 确认字段）。动作端点不自行推进状态。
+
+`SlidePlan` 结构：`{ slideId, title?, objective, keyMessage, contentIntent, visualIntent, layoutSuggestion, requiredAssets, riskNotes }`，其中 `visualIntent ∈ {diagram, image, chart, text, comparison, timeline}`（`VisualIntent` 枚举）。读接口返回 `{ slidePlans: SlidePlan[], slidePlansConfirmed }`。
 
 ### Generate Slide Plans
 
@@ -387,11 +417,37 @@ POST /api/projects/{projectId}/outline/confirm
 POST /api/projects/{projectId}/slides/plans/generate
 ```
 
+- 前置：`state == SLIDE_PLANNING` 且 `outline` 已确认（`outline is not None and outline.confirmedByUser`，None-safe）。
+- 服务赋 `slideId`、**整体覆盖** `slidePlans`、置 `slidePlansConfirmed=false`（重新生成丢弃此前 `PUT` 编辑并作废确认——显式声明的语义）。追加 `SLIDE_PLAN_GENERATED`（payload `slideCount` + `slideIds` + `nextState`）。
+- `estimatedSlides` 与某 section 实际页数不符时，向该 section 首页追加软 `riskNote`（不硬失败）。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`；大纲未确认或为 None → `SLIDE_PLAN_NOT_CONFIRMABLE`；产物校验/唯一性/总页数上限不过 → `SLIDE_PLAN_VALIDATION_ERROR`；上游失败 → `LLM_PROVIDER_ERROR`。
+
 ### Update Slide Plan
 
 ```http
 PUT /api/projects/{projectId}/slides/{slideId}/plan
 ```
+
+- 前置：`state ∈ {SLIDE_PLANNING, SLIDE_PLAN_REVIEW}` 且路径 `slideId` 存在；请求体过 `SlidePlan` 校验。
+- 编辑单页；**服务强制该页 `slideId=路径值`（忽略请求体 id），覆盖后重校验集合唯一性**；置 `slidePlansConfirmed=false`。追加 `SLIDE_PLAN_UPDATED`（payload `slideId` + `nextState`）。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`；未知 `slideId` → `SLIDE_PLAN_NOT_FOUND`；校验不过 → `SLIDE_PLAN_VALIDATION_ERROR`（无副作用）。
+
+### Confirm Slide Plans
+
+```http
+POST /api/projects/{projectId}/slides/plans/confirm
+```
+
+- 前置：`state == SLIDE_PLAN_REVIEW` 且规划**非空**。置 `slidePlansConfirmed=true`，**不推进状态**，追加 `SLIDE_PLAN_CONFIRMED`（payload `slideCount` + `nextState`）。重复确认**重放安全**。
+- 错误：错误状态 → `INVALID_STATE_TRANSITION`；无规划或规划为空 → `SLIDE_PLAN_NOT_FOUND`。
+
+### Get Slide Plans
+
+```http
+GET /api/projects/{projectId}/slides/plans
+```
+
+- 读回 `{ slidePlans, slidePlansConfirmed }`；无副作用。无规划或规划为空 → `SLIDE_PLAN_NOT_FOUND`。
 
 ## 6. Slide Generation APIs
 

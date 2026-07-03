@@ -1,0 +1,15 @@
+{
+  "entity": "Event",
+  "data": {
+    "id": "evt_slide_plan_generated_001",
+    "projectId": "proj_minimal_001",
+    "type": "SLIDE_PLAN_GENERATED",
+    "actor": "ai",
+    "payload": {
+      "slideCount": 2,
+      "slideIds": ["slide-0001", "slide-0002"],
+      "nextState": "SLIDE_PLANNING"
+    },
+    "createdAt": "2026-07-01T00:00:00.000Z"
+  }
+}
