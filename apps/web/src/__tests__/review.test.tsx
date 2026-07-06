@@ -142,3 +142,109 @@ describe("review page — confirm validation error stays unconfirmed", () => {
     expect(screen.queryByText("已确认的 Spec")).toBeNull();
   });
 });
+
+describe("review page — confirmed spec offers a chained 生成大纲 CTA", () => {
+  it("runs transition->generate->transition then navigates to /outline", async () => {
+    const server = installServer({ project: project({ status: "REQUIREMENT_REVIEW" }) });
+    render(<ReviewPage />);
+    await waitFor(() => expect(screen.getByText("确认前摘要")).toBeTruthy());
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "确认 Spec" }));
+    await waitFor(() => expect(screen.getByText("已确认的 Spec")).toBeTruthy());
+
+    await user.click(screen.getByRole("button", { name: "生成大纲" }));
+
+    await waitFor(() =>
+      expect(nav.router.push).toHaveBeenCalledWith("/projects/p1/outline"),
+    );
+    // Chained order: transition(OUTLINE_GENERATION) -> generate -> transition(OUTLINE_REVIEW).
+    const keys = server.calls.map((c) => c.key);
+    const t1 = keys.indexOf("transition");
+    const gen = keys.indexOf("generateOutline");
+    const t2 = keys.lastIndexOf("transition");
+    expect(gen).toBeGreaterThan(t1);
+    expect(t2).toBeGreaterThan(gen);
+    const transitionTargets = server.calls
+      .filter((c) => c.key === "transition")
+      .map((c) => (c.body as { to: string }).to);
+    expect(transitionTargets).toEqual(["OUTLINE_GENERATION", "OUTLINE_REVIEW"]);
+  });
+
+  it("threads an AbortSignal into the chained outline generation (unmount-safe)", async () => {
+    installServer({ project: project({ status: "REQUIREMENT_REVIEW" }) });
+    render(<ReviewPage />);
+    await waitFor(() => expect(screen.getByText("确认前摘要")).toBeTruthy());
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "确认 Spec" }));
+    await waitFor(() => expect(screen.getByText("已确认的 Spec")).toBeTruthy());
+    await user.click(screen.getByRole("button", { name: "生成大纲" }));
+    await waitFor(() =>
+      expect(nav.router.push).toHaveBeenCalledWith("/projects/p1/outline"),
+    );
+
+    // Both chain transitions carry the component's AbortSignal, so leaving the page
+    // mid-chain aborts them (and the guarded router.push never fires unmounted).
+    const calls = (globalThis.fetch as unknown as { mock: { calls: [string, RequestInit?][] } })
+      .mock.calls;
+    const chainTransitions = calls.filter(([p]) => String(p).endsWith("/transitions"));
+    expect(chainTransitions.length).toBe(2);
+    expect(chainTransitions.every(([, init]) => init?.signal instanceof AbortSignal)).toBe(true);
+  });
+});
+
+describe("review page — chained generate ② failure reaches outline via the mount guard", () => {
+  it("does not push on ② failure; state advanced to OUTLINE_GENERATION and the guard replaces to /outline", async () => {
+    const server = installServer({
+      project: project({ status: "REQUIREMENT_REVIEW" }),
+      errors: { generateOutline: { status: 502, code: "LLM_PROVIDER_ERROR" } },
+    });
+    render(<ReviewPage />);
+    await waitFor(() => expect(screen.getByText("确认前摘要")).toBeTruthy());
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "确认 Spec" }));
+    await waitFor(() => expect(screen.getByText("已确认的 Spec")).toBeTruthy());
+
+    await user.click(screen.getByRole("button", { name: "生成大纲" }));
+
+    // Step ② failed; ③ short-circuited. The handler no longer push()es — refresh()
+    // re-reads state as OUTLINE_GENERATION and the mount guard replaces to /outline.
+    await waitFor(() =>
+      expect(nav.router.replace).toHaveBeenCalledWith("/projects/p1/outline"),
+    );
+    expect(nav.router.push).not.toHaveBeenCalled();
+    expect(server.countOf("generateOutline")).toBe(1);
+    expect(server.countOf("transition")).toBe(1); // only ① ran; ③ short-circuited
+  });
+});
+
+describe("review page — chained generate ① failure stays on review with an error", () => {
+  it("does not navigate to /outline; shows the error banner and stays in REQUIREMENT_REVIEW", async () => {
+    const server = installServer({
+      project: project({ status: "REQUIREMENT_REVIEW" }),
+      errors: { transition: { status: 409, code: "INVALID_STATE_TRANSITION" } },
+    });
+    render(<ReviewPage />);
+    await waitFor(() => expect(screen.getByText("确认前摘要")).toBeTruthy());
+    const user = userEvent.setup();
+
+    await user.click(screen.getByRole("button", { name: "确认 Spec" }));
+    await waitFor(() => expect(screen.getByText("已确认的 Spec")).toBeTruthy());
+
+    await user.click(screen.getByRole("button", { name: "生成大纲" }));
+
+    // ① (transition) failed: state is unchanged so the guard keeps us on review
+    // and the source-page banner surfaces the mapped error (D3).
+    await waitFor(() =>
+      expect(document.querySelector('[data-error-kind="state-desync"]')).toBeTruthy(),
+    );
+    expect(nav.router.push).not.toHaveBeenCalled();
+    expect(nav.router.replace).not.toHaveBeenCalled();
+    expect(server.countOf("generateOutline")).toBe(0); // ② short-circuited
+    expect(server.countOf("transition")).toBe(1); // only ① attempted
+    // Still on the review page in REQUIREMENT_REVIEW.
+    expect(screen.getByText("已确认的 Spec")).toBeTruthy();
+  });
+});

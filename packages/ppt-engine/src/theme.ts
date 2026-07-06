@@ -31,7 +31,8 @@ const STYLE_PROPERTY_ALLOWLIST = new Set<string>([
 
 // Any value containing one of these is rejected outright (dropped, not partially
 // stripped) — partial stripping is where bypasses hide.
-const DANGEROUS_VALUE = /expression|url\s*\(|javascript:|@import|[<>{}\\;]/i;
+const DANGEROUS_VALUE =
+  /expression|url\s*\(|image-set|cross-fade|image\s*\(|element\s*\(|javascript:|@import|[<>{}\\;]/i;
 
 /** camelCase / PascalCase → kebab-case; leave already-kebab keys untouched. */
 function toKebabCase(key: string): string {

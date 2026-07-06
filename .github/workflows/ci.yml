@@ -125,6 +125,14 @@ jobs:
             ppt_engine=true
           fi
 
+          # the web app consumes @ppt-pilot/ppt-engine (renderer) and
+          # @ppt-pilot/shared-schema, so a change to either must re-run the web
+          # gate. (After the shared_schema→ppt_engine cascade above, so a
+          # shared-schema change reaches web transitively.)
+          if [[ "${ppt_engine}" == "true" ]]; then
+            web=true
+          fi
+
           if [[ "${ci_config}" == "true" ]]; then
             docs_openspec=true
           fi
@@ -287,6 +295,7 @@ jobs:
         run: |
           set -euo pipefail
           pnpm --filter @ppt-pilot/shared-schema build
+          pnpm --filter @ppt-pilot/ppt-engine build
           pnpm --filter @ppt-pilot/web typecheck
           pnpm --filter @ppt-pilot/web test
           pnpm --filter @ppt-pilot/web build

@@ -3,14 +3,15 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --port 13000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 13000",
     "typecheck": "tsc --noEmit",
     "smoke-start": "node scripts/smoke-start.mjs",
     "test": "vitest run"
   },
   "dependencies": {
+    "@ppt-pilot/ppt-engine": "workspace:*",
     "@ppt-pilot/shared-schema": "workspace:*",
     "@radix-ui/react-label": "^2.1.11",
     "@radix-ui/react-radio-group": "^1.4.2",

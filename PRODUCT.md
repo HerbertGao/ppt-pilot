@@ -113,10 +113,13 @@ As a user, I want to export PPTX, PDF, and HTML preview from the same structured
 > Status (as of writing): the backend pipeline **requirement discovery → outline
 > → slide plan → materialize → HTML preview → PPTX export** is built (Phases 3–7;
 > the LLM agents run behind an `LLMProvider`, materialize and export are
-> deterministic services). The frontend is at the Phase 4 workflow shell
-> (create → discovery → spec review). Canvas editing, partial/element
-> regeneration, image variants, versioning, and the Review Agent are **future**
-> (Phases 8–10). The tiers below are the original roadmap, not current status.
+> deterministic services). The frontend now spans that full workflow (Phase
+> 4/4b): a user can go from confirm-spec through outline review, slide-plan
+> review, materialized HTML preview, and PPTX export **end-to-end in the Web
+> UI**, every step wired to the Phase 3–7 endpoints. Canvas editing,
+> partial/element regeneration, image variants, versioning, and the Review Agent
+> are **future** (Phases 8–10). The tiers below are the original roadmap, not
+> current status.
 
 ### MVP v0.1
 

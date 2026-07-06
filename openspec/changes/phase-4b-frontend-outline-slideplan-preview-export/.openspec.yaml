@@ -1,0 +1,5 @@
+schema: spec-driven
+created: 2026-07-05
+goal: Extend the Next.js frontend from spec review through outline review,
+  slide-plan review, deck preview, and PPTX export — covering the Phase 5–7
+  backend surface with no backend changes.

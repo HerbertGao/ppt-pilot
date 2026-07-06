@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   changeProfileRollbackFirst,
+  currentStepPath,
   discoveryPath,
   enterDiscovery,
   enterReview,
@@ -53,28 +54,30 @@ describe("planEnterReview", () => {
 });
 
 describe("mount guards", () => {
-  it("review page redirects to discovery unless state == REVIEW", () => {
-    expect(guardReviewMount("p1", "REQUIREMENT_REVIEW")).toBeNull();
+  it("review page stays only in REVIEW, else redirects to currentStepPath", () => {
     for (const state of WORKFLOW_STATES) {
-      if (state === "REQUIREMENT_REVIEW") continue;
-      expect(guardReviewMount("p1", state)).toBe(discoveryPath("p1"));
+      expect(guardReviewMount("p1", state)).toBe(
+        state === "REQUIREMENT_REVIEW" ? null : currentStepPath("p1", state),
+      );
     }
   });
 
-  it("discovery page redirects to review only when state == REVIEW", () => {
-    expect(guardDiscoveryMount("p1", "REQUIREMENT_REVIEW")).toBe(reviewPath("p1"));
+  it("discovery page stays in NEW/DISCOVERY (accept-set), else currentStepPath", () => {
     for (const state of WORKFLOW_STATES) {
-      if (state === "REQUIREMENT_REVIEW") continue;
-      expect(guardDiscoveryMount("p1", state)).toBeNull();
+      const stays = state === "NEW_PROJECT" || state === "REQUIREMENT_DISCOVERY";
+      expect(guardDiscoveryMount("p1", state)).toBe(
+        stays ? null : currentStepPath("p1", state),
+      );
     }
   });
 
-  it("guards are mutually exclusive -> no redirect loop for any state", () => {
+  it("each guard redirects to a page that stays -> no redirect loop for any state", () => {
     for (const state of WORKFLOW_STATES) {
-      const reviewRedirect = guardReviewMount("p1", state);
-      const discoveryRedirect = guardDiscoveryMount("p1", state);
-      // At most one page redirects; whichever redirects lands on a page that stays.
-      expect(reviewRedirect !== null && discoveryRedirect !== null).toBe(false);
+      // Whichever guard redirects points at currentStepPath(state); landing there
+      // does not bounce again — the destination page's own guard accepts the state.
+      const home = currentStepPath("p1", state);
+      if (home === discoveryPath("p1")) expect(guardDiscoveryMount("p1", state)).toBeNull();
+      if (home === reviewPath("p1")) expect(guardReviewMount("p1", state)).toBeNull();
     }
   });
 });

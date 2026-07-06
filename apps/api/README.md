@@ -9,7 +9,7 @@ deterministic slide-materialization and PPTX-export services (Phases 2–7).
 From the repository root:
 
 ```bash
-python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000
+python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 18000
 ```
 
 Or from this directory:
@@ -17,6 +17,11 @@ Or from this directory:
 ```bash
 python3 -m app.main
 ```
+
+The default port is **18000** (an uncommon five-digit port; `8000` is frequently
+grabbed by Docker/OrbStack). Override with `API_PORT` for `python3 -m app.main`, or
+`--port` for the uvicorn command. The web dev server proxies `/api` to
+`http://127.0.0.1:18000` by default (override with `BACKEND_URL`).
 
 `GET /health` returns a liveness payload. The full API surface (project lifecycle,
 transitions, requirement discovery, outline, slide plans, materialize, presentation,

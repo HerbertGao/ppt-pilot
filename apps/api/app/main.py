@@ -110,9 +110,17 @@ def health_check() -> dict[str, str]:
 def run() -> None:
     """Run the API with a clear Python entrypoint."""
 
+    import os
     import uvicorn
 
-    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=False)
+    # Default to an uncommon five-digit port: 8000 is frequently grabbed by
+    # Docker/OrbStack (which listens on *:8000, incl. IPv6 ::1). Override with API_PORT.
+    uvicorn.run(
+        "app.main:app",
+        host="127.0.0.1",
+        port=int(os.environ.get("API_PORT", "18000")),
+        reload=False,
+    )
 
 
 def _selfcheck() -> None:

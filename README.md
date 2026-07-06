@@ -74,7 +74,7 @@ Run the full repository validation gate:
 pnpm run validate
 ```
 
-Per-package checks:
+Per-package checks (on a fresh checkout, build upstream deps first — `ppt-engine typecheck` needs `shared-schema` `dist/`, and the `web` commands need both `shared-schema` and `ppt-engine` `dist/`; the root `pnpm run typecheck` chains the builds for you):
 
 ```bash
 # shared-schema
@@ -107,7 +107,7 @@ pnpm --filter @ppt-pilot/web dev
 Start the API locally:
 
 ```bash
-python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000
+python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 18000
 ```
 
 CI gate details are documented in [docs/CI_GATES.md](./docs/CI_GATES.md).

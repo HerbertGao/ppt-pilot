@@ -2,7 +2,15 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { renderPresentation, renderSlide, renderThumbnail } from "../dist/index.js";
+import {
+  renderPresentation,
+  renderSlide,
+  renderThumbnail,
+  sanitizeCssValue,
+  slideBaseCss,
+  styleObjectToCss,
+  themeToCss,
+} from "../dist/index.js";
 
 // Zero-dep golden runner (mirrors shared-schema/scripts/validate-fixtures.mjs).
 // Set UPDATE_GOLDEN=1 to (re)write the expected/* golden files after an
@@ -120,6 +128,53 @@ function goldenEquals(name, actual) {
   checked += 3;
 
   goldenEquals("thumbnail-slide-1.txt", uri);
+}
+
+// 5. URL-loading CSS functions are neutralized exactly like url(...) already is.
+//    image-set/-webkit-image-set/cross-fade/image()/element() all load a URL from
+//    a string arg, so the sanitizer must drop them at every entry point.
+{
+  const urlFns = [
+    'image-set("https://evil.example/p.png" 1x)',
+    '-webkit-image-set("https://evil.example/p.png" 1x)',
+    'cross-fade(url(https://evil.example/a.png), url(https://evil.example/b.png), 50%)',
+    'image("https://evil.example/p.png")',
+    'element(#evil)',
+  ];
+
+  for (const value of urlFns) {
+    // sanitizeCssValue drops the whole value (like url(...)), returning null.
+    assert.equal(sanitizeCssValue(value), null, `sanitizeCssValue passed URL-loading fn: ${value}`);
+
+    // element.style.background must not survive into the declaration string.
+    const styleCss = styleObjectToCss({ background: value });
+    assert.equal(styleCss, "", `styleObjectToCss emitted URL-loading background: ${value}`);
+    assert.ok(!/evil\.example/.test(styleCss), `styleObjectToCss leaked external URL: ${value}`);
+
+    // themeToCss custom-property values route through the same sanitizer.
+    const themeCss = themeToCss({ palette: { brand: value } });
+    assert.ok(!themeCss.includes("--palette-brand"), `themeToCss emitted URL-loading custom prop: ${value}`);
+    assert.ok(!/evil\.example/.test(themeCss), `themeToCss leaked external URL: ${value}`);
+  }
+  checked += urlFns.length * 5;
+}
+
+// 6. Base CSS supplies the 1280×720 containing block + key selectors so the
+//    renderer's position:absolute HTML lays out inside the frame, not the
+//    viewport. This is a separate export — it must NOT alter renderSlide/
+//    renderPresentation output (golden fixtures above already assert that).
+{
+  const css = slideBaseCss();
+  assert.equal(typeof css, "string", "slideBaseCss did not return a string");
+  assert.ok(css.length > 0, "slideBaseCss returned an empty string");
+  assert.equal(css, slideBaseCss(), "slideBaseCss is not deterministic");
+  for (const selector of [".ppt-slide", ".ppt-slide__canvas", ".ppt-element"]) {
+    assert.ok(css.includes(selector), `slideBaseCss missing selector ${selector}`);
+  }
+  assert.ok(css.includes("1280px"), "slideBaseCss missing the 1280px canvas width");
+  assert.ok(css.includes("720px"), "slideBaseCss missing the 720px canvas height");
+  assert.ok(css.includes("position: relative"), "slideBaseCss must make .ppt-slide a positioned parent");
+  checked += 7;
 }
 
 console.log(`ppt-engine fixtures validated: ${checked} renderer expectations passed`);
