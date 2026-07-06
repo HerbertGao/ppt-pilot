@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 
-const port = process.env.PORT ?? "3100";
+const port = process.env.PORT ?? "13100";
 const host = "127.0.0.1";
 const url = `http://${host}:${port}/`;
 const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS ?? "30000");

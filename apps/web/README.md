@@ -6,6 +6,11 @@ shell pages: project creation (`/`), requirement discovery
 
 ## Scripts
 
+On a fresh checkout, build the workspace deps first — `typecheck`/`test`/`build`
+need `@ppt-pilot/shared-schema` and `@ppt-pilot/ppt-engine` `dist/`. From the repo
+root, `pnpm run typecheck` chains `shared-schema build → ppt-engine build → web
+typecheck` for you.
+
 - `pnpm --filter @ppt-pilot/web dev`
 - `pnpm --filter @ppt-pilot/web typecheck`
 - `pnpm --filter @ppt-pilot/web test` — Vitest component/interaction tests; all
@@ -24,18 +29,18 @@ The shell imports `@ppt-pilot/shared-schema` through the pnpm workspace and disp
 
 `next.config.mjs` rewrites `/api/:path*` to `${BACKEND_URL}/api/:path*`, so the browser always calls same-origin `/api/...` and no backend CORS change is needed.
 
-- `BACKEND_URL` — base URL of the running Phase 3 API. Defaults to `http://localhost:8000`.
+- `BACKEND_URL` — base URL of the running Phase 3 API. Defaults to `http://127.0.0.1:18000`.
 
 Local dev against the API:
 
 ```sh
 # terminal 1 — backend (from the repo root)
-python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 8000
+python3 -m uvicorn app.main:app --app-dir apps/api --host 127.0.0.1 --port 18000
 
-# terminal 2 — web (BACKEND_URL defaults to http://localhost:8000)
+# terminal 2 — web (BACKEND_URL defaults to http://127.0.0.1:18000)
 pnpm --filter @ppt-pilot/web dev
 # or point at another backend:
-BACKEND_URL=http://localhost:9000 pnpm --filter @ppt-pilot/web dev
+BACKEND_URL=http://127.0.0.1:9000 pnpm --filter @ppt-pilot/web dev
 ```
 
 Phase 4 stops at Spec confirmation (project stays in `REQUIREMENT_REVIEW`). It

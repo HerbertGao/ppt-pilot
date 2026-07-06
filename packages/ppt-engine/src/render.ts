@@ -58,6 +58,104 @@ function renderElement(element: Element): string {
   return `<div ${attrs}><div class="ppt-placeholder">${label}${captionHtml}</div></div>`;
 }
 
+// Base stylesheet for the renderer's HTML. renderSlide/renderPresentation emit
+// `position:absolute` elements but ship NO CSS, so without this the elements have
+// no containing block and position against the viewport. This supplies the
+// 1280×720 design canvas (same coordinate space the PPTX export maps to EMU),
+// the containing block, and placeholder styling — kept separate from the HTML
+// output so golden fixtures stay byte-identical.
+const SLIDE_BASE_CSS = `.ppt-slide {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+.ppt-slide__canvas {
+  position: absolute;
+  inset: 0;
+}
+.ppt-element {
+  position: absolute;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+.ppt-text {
+  display: block;
+  width: 100%;
+  height: 100%;
+  color: inherit;
+  font: inherit;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+/* Non-text elements (image/chart/diagram/shape/…) render as type-annotated
+   placeholder boxes: a dashed frame + the type label the renderer already emits.
+   Real media/charts are out of scope this phase. */
+.ppt-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  height: 100%;
+  border: 1px dashed currentColor;
+  border-radius: 4px;
+  opacity: 0.55;
+  text-align: center;
+  overflow: hidden;
+}
+.ppt-placeholder__label {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.ppt-placeholder__caption {
+  max-width: 90%;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* The materializer ALSO emits the title as a positioned .ppt-element inside the
+   canvas, so this <h2> is a duplicate. Hide it visually but keep it for a11y
+   (sr-only). Title duplication is a materializer quirk, out of scope here. */
+.ppt-slide__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+/* Empty-slides fallback only (renderPresentation). */
+.ppt-presentation {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.ppt-presentation__title {
+  font-size: 20px;
+  font-weight: 700;
+}
+`;
+
+/**
+ * Base CSS that makes the renderer's HTML lay out correctly at the 1280×720
+ * design canvas: it establishes the containing block for the `position:absolute`
+ * elements (otherwise they position against the viewport) and styles the
+ * type-annotated placeholder boxes. Static; inject once via a `<style>`.
+ */
+export function slideBaseCss(): string {
+  return SLIDE_BASE_CSS;
+}
+
 /**
  * Render a single slide to an HTML fragment. `theme` is applied to the slide
  * root as inline (allowlisted, sanitized) CSS so token changes are visible.

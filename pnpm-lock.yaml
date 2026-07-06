@@ -14,6 +14,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@ppt-pilot/ppt-engine':
+        specifier: workspace:*
+        version: link:../../packages/ppt-engine
       '@ppt-pilot/shared-schema':
         specifier: workspace:*
         version: link:../../packages/shared-schema

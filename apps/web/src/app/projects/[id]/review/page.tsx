@@ -19,9 +19,11 @@ import { clearDiscoverySession, getDiscoverySession } from "@/lib/discovery-sess
 import { useProject } from "@/lib/use-project";
 import {
   changeProfileRollbackFirst,
+  chainGenerateOutline,
   discoveryPath,
   guardReviewMount,
   isConfirmable,
+  outlinePath,
 } from "@/lib/workflow";
 import type { SceneStyleValue } from "@/components/scene-style-controls";
 import { SceneStyleControls } from "@/components/scene-style-controls";
@@ -47,6 +49,10 @@ export default function ReviewPage() {
   const [actionError, setActionError] = useState<unknown>(null);
   const [editingProfile, setEditingProfile] = useState<SceneStyleValue | null>(null);
   const redirected = useRef(false);
+  const chainCtrl = useRef<AbortController | null>(null);
+
+  // Abort any in-flight chain on unmount so it never router.push()es a gone page.
+  useEffect(() => () => chainCtrl.current?.abort(), []);
 
   // Mount guard: never transition; redirect out when not in REVIEW.
   useEffect(() => {
@@ -69,6 +75,29 @@ export default function ReviewPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function onGenerateOutline() {
+    setBusy(true);
+    setActionError(null);
+    chainCtrl.current?.abort();
+    const controller = new AbortController();
+    chainCtrl.current = controller;
+    // Chained: transition -> generate -> transition (never throws; returns ok flag).
+    const res = await chainGenerateOutline(projectId, controller.signal);
+    // Left the page mid-chain: don't navigate from an unmounted component.
+    if (controller.signal.aborted) return;
+    // Navigate only on success (D3). On failure DON'T push: ① failure leaves the
+    // state at REQUIREMENT_REVIEW so this page stays and shows the error banner;
+    // ② failure advanced to OUTLINE_GENERATION, so refresh() lets the mount guard
+    // redirect to /outline, which owns the generation-state error + retry.
+    if (res.ok) {
+      router.push(outlinePath(projectId));
+      return;
+    }
+    setActionError(res.error);
+    setBusy(false);
+    refresh();
   }
 
   async function onSaveProfile() {
@@ -124,7 +153,7 @@ export default function ReviewPage() {
     >
       <div className="flex flex-col gap-6">
         {confirmed ? (
-          <ConfirmedSpec spec={confirmed} />
+          <ConfirmedSpec spec={confirmed} busy={busy} onGenerate={onGenerateOutline} />
         ) : (
           <Card>
             <CardHeader>
@@ -225,12 +254,20 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ConfirmedSpec({ spec }: { spec: ConfirmResponse }) {
+function ConfirmedSpec({
+  spec,
+  busy,
+  onGenerate,
+}: {
+  spec: ConfirmResponse;
+  busy: boolean;
+  onGenerate: () => void;
+}) {
   return (
     <Card data-confirmed="true">
       <CardHeader>
         <CardTitle>已确认的 Spec</CardTitle>
-        <CardDescription>项目停留在需求复核（本期不进入后续阶段）。</CardDescription>
+        <CardDescription>Spec 已确认，可生成大纲进入下一步。</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4 text-sm">
         <div className="flex flex-col gap-2">
@@ -258,6 +295,11 @@ function ConfirmedSpec({ spec }: { spec: ConfirmResponse }) {
           )}
         </div>
       </CardContent>
+      <CardFooter className="mt-4">
+        <Button type="button" onClick={onGenerate} disabled={busy}>
+          {busy ? "生成中…" : "生成大纲"}
+        </Button>
+      </CardFooter>
     </Card>
   );
 }

@@ -33,6 +33,8 @@ interface Mapping {
   title: string;
   message: string;
   retryable?: boolean;
+  /** Append the backend `details.message` after a 「：」 (validation/materialize codes). */
+  appendDetail?: boolean;
 }
 
 const MAPPINGS: Record<string, Mapping> = {
@@ -84,6 +86,72 @@ const MAPPINGS: Record<string, Mapping> = {
     title: "项目不存在",
     message: "找不到该项目，请确认链接是否正确。",
   },
+  // --- Phase 5–7 codes ---
+  OUTLINE_NOT_CONFIRMABLE: {
+    kind: "rollback",
+    title: "当前无法生成大纲",
+    message: "请先确认 Spec 后再生成大纲。",
+  },
+  SLIDE_PLAN_NOT_CONFIRMABLE: {
+    kind: "rollback",
+    title: "当前无法生成规划",
+    message: "请先确认大纲后再生成规划。",
+  },
+  OUTLINE_VALIDATION_ERROR: {
+    kind: "validation",
+    title: "大纲校验失败",
+    message: "大纲内容未通过校验，已保持原状。",
+    appendDetail: true,
+  },
+  OUTLINE_NOT_FOUND: {
+    kind: "not-found",
+    title: "大纲不存在",
+    message: "尚未生成大纲。",
+  },
+  SLIDE_PLAN_VALIDATION_ERROR: {
+    kind: "validation",
+    title: "规划校验失败",
+    message: "幻灯片规划未通过校验，已保持原状。",
+    appendDetail: true,
+  },
+  SLIDE_PLAN_NOT_FOUND: {
+    kind: "not-found",
+    title: "规划不存在",
+    message: "尚未生成幻灯片规划。",
+  },
+  SLIDES_NOT_MATERIALIZABLE: {
+    kind: "rollback",
+    title: "当前无法物化",
+    message: "请先确认幻灯片规划后再物化。",
+    appendDetail: true,
+  },
+  SLIDE_VALIDATION_ERROR: {
+    kind: "validation",
+    title: "内容校验失败",
+    message: "幻灯片内容未通过校验。",
+    appendDetail: true,
+  },
+  PRESENTATION_NOT_FOUND: {
+    kind: "not-found",
+    title: "尚未物化",
+    message: "尚未物化幻灯片，请先物化。",
+  },
+  EXPORT_NOT_READY: {
+    kind: "rollback",
+    title: "当前无法导出",
+    message: "请先物化幻灯片后再导出。",
+  },
+  EXPORT_VALIDATION_ERROR: {
+    kind: "validation",
+    title: "导出校验失败",
+    message: "导出内容未通过校验。",
+    appendDetail: true,
+  },
+  EXPORT_ARTIFACT_NOT_FOUND: {
+    kind: "not-found",
+    title: "产物不存在",
+    message: "该导出产物不存在。",
+  },
   INVALID_REQUEST_BODY: {
     kind: "fallback",
     title: "请求无效",
@@ -110,10 +178,16 @@ export function presentError(err: unknown): PresentedError {
 
   const mapping = MAPPINGS[err.code];
   if (mapping) {
+    // Validation/materialize codes append the backend detail (empty -> static, no
+    // dangling colon).
+    const message =
+      mapping.appendDetail && err.detailMessage
+        ? `${mapping.message}：${err.detailMessage}`
+        : mapping.message;
     return {
       kind: mapping.kind,
       title: mapping.title,
-      message: mapping.message,
+      message,
       field: mapping.kind === "field" ? err.field : undefined,
       retryable: mapping.retryable ?? false,
     };

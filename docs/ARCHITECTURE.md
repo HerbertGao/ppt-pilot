@@ -61,6 +61,41 @@ Recommended libraries:
 - Drag sorting: dnd-kit
 - Collaborative editing later: Yjs
 
+### 3.1 Workflow step pages (Phase 4 / 4b)
+
+The as-built frontend is a workflow-driven step shell, not yet the canvas IDE
+above. `apps/web/src/app/projects/[id]/` hosts one page per workflow stage —
+`discovery`, `review`, `outline`, `slide-plans`, `preview`, `export` — each
+consuming the existing Phase 3–7 API endpoints. This is a **pure-frontend**
+layer: no backend route, schema, event, or state-machine edge changes.
+
+- **Step routing is centralized** in `apps/web/src/lib/workflow.ts`:
+  `currentStepPath(projectId, state)` maps every `WorkflowState` to its single
+  canonical step page, and per-page mount guards
+  (`guardOutlineMount`/`guardSlidePlansMount`/`guardPreviewMount`/`guardExportMount`,
+  alongside the existing discovery/review guards) redirect a mis-placed state to
+  that path — so a page never renders for a state it does not own.
+- **Forward progress is transition-driven** (same rule as Phase 4): action
+  endpoints (generate/update/confirm/materialize/export) never advance state;
+  only an explicit `POST /transitions` moves forward. Generation is chained —
+  `chainGenerateOutline`/`chainGenerateSlidePlans` run "transition → generate →
+  transition" (enter the generation state, call the generate endpoint, enter the
+  review state), and a mid-chain failure stays in the generation state for
+  retry. Step-page mount only redirects; it never auto-transitions.
+- **The preview page consumes `@ppt-pilot/ppt-engine` directly**: once
+  `POST /slides/materialize` (or `GET /presentation`) returns a bare
+  `Presentation`, it calls `renderPresentation`/`renderSlide`/`renderThumbnail`
+  to produce the preview HTML and thumbnails in-browser (no new backend render
+  endpoint).
+- **The export page** lists `GET /exports` metadata and downloads each artifact
+  via `fetch` → `Blob` → `<a download>` (never `window.location`). Every Phase
+  3–7 error code routes through the central `presentError` map in
+  `apps/web/src/lib/errors.ts`, so pages never hand-roll error copy.
+
+This closes the loop the backend opened in Phases 5–7: a user can now complete
+confirm-spec → outline → slide plans → materialized preview → PPTX export
+entirely from the Web UI.
+
 ### Mobile Companion
 
 Mobile should not attempt to be a full PPT editor.

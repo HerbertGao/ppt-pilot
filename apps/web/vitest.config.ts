@@ -17,5 +17,10 @@ export default defineConfig({
     unstubGlobals: true,
     setupFiles: ["./vitest.setup.ts"],
     include: ["src/**/*.test.{ts,tsx}"],
+    // Run test files sequentially. Parallel jsdom environments starve CPU and make
+    // cold-start `waitFor`s (auto-drive chains under userEvent) exceed testing-
+    // library's timeout non-deterministically; serial is deterministic (112/112)
+    // and only ~15s slower at this suite size.
+    fileParallelism: false,
   },
 });

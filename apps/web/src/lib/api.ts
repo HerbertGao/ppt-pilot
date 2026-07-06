@@ -12,9 +12,13 @@
  * unstructured exception.
  */
 import type {
+  ExportArtifact,
+  Outline,
+  Presentation,
   QuestionMode,
   QuestionPolicy,
   Scene,
+  SlidePlan,
   WorkflowState,
 } from "@ppt-pilot/shared-schema";
 
@@ -123,6 +127,23 @@ export interface ProfileResponse {
 }
 
 // --------------------------------------------------------------------------- //
+// Phase 5–7 response types — canonical fields reuse schema types.
+// --------------------------------------------------------------------------- //
+
+/** Phase 5 slide-plan read shape: shared by generate/update/confirm/GET. */
+export interface SlidePlansPayload {
+  slidePlans: SlidePlan[];
+  slidePlansConfirmed: boolean;
+}
+
+/**
+ * Phase 7 export metadata: an `ExportArtifact` without the unbounded
+ * `bytesBase64` field. The list/POST endpoints serve this shape; the
+ * single-item download serves the raw bytes via a separate endpoint.
+ */
+export type ExportArtifactMetadata = Omit<ExportArtifact, "bytesBase64">;
+
+// --------------------------------------------------------------------------- //
 // Request types
 // --------------------------------------------------------------------------- //
 
@@ -206,7 +227,7 @@ async function apiFetch<T>(
   throw await toApiError(response);
 }
 
-async function toApiError(response: Response): Promise<ApiError> {
+export async function toApiError(response: Response): Promise<ApiError> {
   let envelope: Partial<ErrorEnvelope> = {};
   try {
     const parsed = (await response.json()) as unknown;
@@ -223,6 +244,38 @@ async function toApiError(response: Response): Promise<ApiError> {
     field: envelope.details?.field,
     detailMessage: envelope.details?.message,
   });
+}
+
+/**
+ * Raw-`fetch` wrapper for endpoints that return non-JSON (e.g. binary streams).
+ * Mirrors `apiFetch`'s error handling: network failures synthesize
+ * `NETWORK_ERROR`, non-2xx responses are parsed as the `{error, code, details}`
+ * envelope and thrown as `ApiError`. Returns the raw `Response` so callers can
+ * call `.blob()` / `.arrayBuffer()` / etc.
+ */
+export async function blobFetch(
+  path: string,
+  init?: { method?: string; signal?: AbortSignal | undefined },
+): Promise<Response> {
+  const requestInit: RequestInit = { method: init?.method ?? "GET" };
+  if (init?.signal) {
+    requestInit.signal = init.signal;
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(path, requestInit);
+  } catch (cause) {
+    throw new ApiError({
+      code: NETWORK_ERROR_CODE,
+      errorClass: NETWORK_ERROR_CODE,
+      status: 0,
+      detailMessage: cause instanceof Error ? cause.message : "network request failed",
+    });
+  }
+
+  if (response.ok) return response;
+  throw await toApiError(response);
 }
 
 // --------------------------------------------------------------------------- //
@@ -297,6 +350,110 @@ export const api = {
     return apiFetch<ProfileResponse>(
       `/api/projects/${encodeURIComponent(projectId)}/profile`,
       { method: "PATCH", body: input, signal },
+    );
+  },
+
+  // --- Phase 5 outline (returns bare Outline) ---
+  generateOutline(projectId: string, signal?: AbortSignal) {
+    return apiFetch<Outline>(
+      `/api/projects/${encodeURIComponent(projectId)}/outline/generate`,
+      { method: "POST", body: {}, signal },
+    );
+  },
+
+  updateOutline(projectId: string, outline: Outline, signal?: AbortSignal) {
+    return apiFetch<Outline>(
+      `/api/projects/${encodeURIComponent(projectId)}/outline`,
+      { method: "PUT", body: outline, signal },
+    );
+  },
+
+  confirmOutline(projectId: string, signal?: AbortSignal) {
+    return apiFetch<Outline>(
+      `/api/projects/${encodeURIComponent(projectId)}/outline/confirm`,
+      { method: "POST", body: {}, signal },
+    );
+  },
+
+  getOutline(projectId: string, signal?: AbortSignal) {
+    return apiFetch<Outline>(
+      `/api/projects/${encodeURIComponent(projectId)}/outline`,
+      { signal },
+    );
+  },
+
+  // --- Phase 5 slide plans (returns {slidePlans, slidePlansConfirmed}) ---
+  generateSlidePlans(projectId: string, signal?: AbortSignal) {
+    return apiFetch<SlidePlansPayload>(
+      `/api/projects/${encodeURIComponent(projectId)}/slides/plans/generate`,
+      { method: "POST", body: {}, signal },
+    );
+  },
+
+  updateSlidePlan(
+    projectId: string,
+    slideId: string,
+    plan: SlidePlan,
+    signal?: AbortSignal,
+  ) {
+    return apiFetch<SlidePlansPayload>(
+      `/api/projects/${encodeURIComponent(projectId)}/slides/${encodeURIComponent(
+        slideId,
+      )}/plan`,
+      { method: "PUT", body: plan, signal },
+    );
+  },
+
+  confirmSlidePlans(projectId: string, signal?: AbortSignal) {
+    return apiFetch<SlidePlansPayload>(
+      `/api/projects/${encodeURIComponent(projectId)}/slides/plans/confirm`,
+      { method: "POST", body: {}, signal },
+    );
+  },
+
+  getSlidePlans(projectId: string, signal?: AbortSignal) {
+    return apiFetch<SlidePlansPayload>(
+      `/api/projects/${encodeURIComponent(projectId)}/slides/plans`,
+      { signal },
+    );
+  },
+
+  // --- Phase 6 presentation (returns bare Presentation) ---
+  materialize(projectId: string, signal?: AbortSignal) {
+    return apiFetch<Presentation>(
+      `/api/projects/${encodeURIComponent(projectId)}/slides/materialize`,
+      { method: "POST", body: {}, signal },
+    );
+  },
+
+  getPresentation(projectId: string, signal?: AbortSignal) {
+    return apiFetch<Presentation>(
+      `/api/projects/${encodeURIComponent(projectId)}/presentation`,
+      { signal },
+    );
+  },
+
+  // --- Phase 7 export (metadata only; download goes through blobFetch) ---
+  exportPptx(projectId: string, signal?: AbortSignal) {
+    return apiFetch<ExportArtifactMetadata>(
+      `/api/projects/${encodeURIComponent(projectId)}/export`,
+      { method: "POST", body: {}, signal },
+    );
+  },
+
+  listExports(projectId: string, signal?: AbortSignal) {
+    return apiFetch<{ exports: ExportArtifactMetadata[] }>(
+      `/api/projects/${encodeURIComponent(projectId)}/exports`,
+      { signal },
+    );
+  },
+
+  downloadExport(projectId: string, artifactId: string, signal?: AbortSignal) {
+    return blobFetch(
+      `/api/projects/${encodeURIComponent(projectId)}/export/${encodeURIComponent(
+        artifactId,
+      )}`,
+      { signal },
     );
   },
 };
