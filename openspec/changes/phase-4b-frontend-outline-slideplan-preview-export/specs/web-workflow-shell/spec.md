@@ -62,7 +62,7 @@ Web 应用必须展示项目当前 `WorkflowState`（取自后端 `GET /api/proj
 
 步骤页可达性映射（`currentStepPath`）：
 
-```
+```text
 NEW_PROJECT, REQUIREMENT_DISCOVERY → /projects/{id}/discovery
 REQUIREMENT_REVIEW                 → /projects/{id}/review
 OUTLINE_GENERATION, OUTLINE_REVIEW → /projects/{id}/outline

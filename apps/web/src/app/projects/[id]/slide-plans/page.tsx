@@ -71,6 +71,7 @@ export default function SlidePlansPage() {
   const [plansNonce, setPlansNonce] = useState(0);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<unknown>(null);
+  const [dirtyIds, setDirtyIds] = useState<ReadonlySet<string>>(() => new Set());
 
   const redirected = useRef(false);
 
@@ -85,6 +86,19 @@ export default function SlidePlansPage() {
   }, [project, projectId, router]);
 
   const confirmed = payload?.slidePlansConfirmed ?? false;
+
+  // A card with unsaved edits must not confirm/materialize the persisted (stale)
+  // payload. Each PlanCard reports its dirty state; block the CTA while any is dirty.
+  const hasUnsaved = dirtyIds.size > 0;
+  const reportDirty = useCallback((id: string, dirty: boolean) => {
+    setDirtyIds((prev) => {
+      if (dirty === prev.has(id)) return prev;
+      const next = new Set(prev);
+      if (dirty) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }, []);
 
   // Finish the chained generation (② generate + ③ transition). Driven by the
   // user-clicked "重试生成" button (never on mount); never re-issues the first
@@ -222,6 +236,7 @@ export default function SlidePlansPage() {
                   index={i}
                   plan={plan}
                   onSaved={setPayload}
+                  onDirtyChange={reportDirty}
                 />
               ))}
 
@@ -229,12 +244,17 @@ export default function SlidePlansPage() {
 
               <Card>
                 <CardFooter className="flex flex-wrap items-center gap-3 pt-6">
+                  {hasUnsaved ? (
+                    <span className="w-full text-sm text-amber-600" data-unsaved-hint="true">
+                      有未保存的规划改动，请先保存对应卡片再确认或物化。
+                    </span>
+                  ) : null}
                   {confirmed ? (
                     <>
                       <span className="text-sm text-muted-foreground" data-plans-confirmed="true">
                         规划已确认。
                       </span>
-                      <Button type="button" onClick={onMaterialize} disabled={busy}>
+                      <Button type="button" onClick={onMaterialize} disabled={busy || hasUnsaved}>
                         {busy ? "进入中…" : "物化幻灯片"}
                       </Button>
                     </>
@@ -242,7 +262,7 @@ export default function SlidePlansPage() {
                     <Button
                       type="button"
                       onClick={onConfirm}
-                      disabled={busy || payload.slidePlans.length === 0}
+                      disabled={busy || payload.slidePlans.length === 0 || hasUnsaved}
                     >
                       {busy ? "确认中…" : "确认规划"}
                     </Button>
@@ -269,11 +289,13 @@ function PlanCard({
   index,
   plan,
   onSaved,
+  onDirtyChange,
 }: {
   projectId: string;
   index: number;
   plan: SlidePlan;
   onSaved: (payload: SlidePlansPayload) => void;
+  onDirtyChange: (id: string, dirty: boolean) => void;
 }) {
   const [draft, setDraft] = useState<SlidePlan>(plan);
   const [busy, setBusy] = useState(false);
@@ -281,6 +303,15 @@ function PlanCard({
   const [err, setErr] = useState<unknown>(null);
 
   const uid = `plan-${plan.slideId ?? index}`;
+
+  // Report unsaved-edit state up so the confirm/materialize CTA can block on it.
+  const dirty = JSON.stringify(draft) !== JSON.stringify(plan);
+  useEffect(() => {
+    const id = plan.slideId;
+    if (!id) return;
+    onDirtyChange(id, dirty);
+    return () => onDirtyChange(id, false);
+  }, [dirty, plan.slideId, onDirtyChange]);
 
   function patch(next: Partial<SlidePlan>) {
     setDraft((d) => ({ ...d, ...next }));

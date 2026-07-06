@@ -166,6 +166,30 @@ describe("slide-plans page — confirm then materialize", () => {
   });
 });
 
+describe("slide-plans page — unsaved edits block confirm/materialize", () => {
+  it("editing a plan without saving disables 确认规划 + shows a hint; saving clears it", async () => {
+    installServer({
+      project: project({ status: "SLIDE_PLAN_REVIEW" }),
+      slidePlans: defaultSlidePlans({ slidePlansConfirmed: false }),
+    });
+    render(<SlidePlansPage />);
+    await waitFor(() => expect(screen.getByText(/slideId: slide-1/)).toBeTruthy());
+    const user = userEvent.setup();
+
+    const confirm = () => screen.getByRole("button", { name: "确认规划" }) as HTMLButtonElement;
+    expect(confirm().disabled).toBe(false);
+
+    await user.type(screen.getByLabelText("目标"), "X");
+    await waitFor(() => expect(confirm().disabled).toBe(true));
+    expect(document.querySelector('[data-unsaved-hint="true"]')).toBeTruthy();
+
+    // Saving persists the edit (plan == draft) -> dirty clears, CTA re-enables.
+    await user.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() => expect(confirm().disabled).toBe(false));
+    expect(document.querySelector('[data-unsaved-hint="true"]')).toBeNull();
+  });
+});
+
 describe("slide-plans page — SLIDE_PLANNING never auto-transitions on mount", () => {
   it("does not generate on mount; a clicked 重试生成 runs generate + transition", async () => {
     const server = installServer({

@@ -351,7 +351,10 @@ export function installServer(config: ServerConfig): FakeServer {
           if (!exists) {
             return errorEnvelope({ status: 404, code: "SLIDE_PLAN_NOT_FOUND" });
           }
-          slidePlans = { ...slidePlans, slidePlansConfirmed: false };
+          slidePlans = {
+            slidePlans: slidePlans.slidePlans.map((p) => (p.slideId === slideId ? body : p)),
+            slidePlansConfirmed: false,
+          };
           return respond(200, slidePlans);
         }
         case "confirmSlidePlans":
